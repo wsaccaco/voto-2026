@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Dependencias y artefactos (se regeneran dentro de la imagen)
+node_modules
+server/node_modules
+web/node_modules
+server/dist
+web/dist
+
+# Entornos y archivos locales
+server/.env
+.env
+*.log
+
+# IDE / misc
+.DS_Store
+qoder.json

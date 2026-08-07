@@ -1,0 +1,31 @@
+{
+	"name": "encuesta-server",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsc",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "tsx scripts/migrate.ts",
+		"db:push": "drizzle-kit push",
+		"db:seed": "tsx scripts/seed.ts",
+		"db:import": "tsx scripts/import-jne.ts"
+	},
+	"dependencies": {
+		"@auth/core": "^0.37.4",
+		"@hono/node-server": "^1.13.7",
+		"dotenv": "^17.4.2",
+		"drizzle-orm": "^0.45.2",
+		"hono": "^4.6.14",
+		"postgres": "^3.4.9"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.2",
+		"drizzle-kit": "^0.31.10",
+		"tsx": "^4.19.2",
+		"typescript": "^5.7.2"
+	}
+}

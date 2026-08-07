@@ -1,0 +1,38 @@
+# Dependencias
+node_modules/
+
+# Artefactos de build
+dist/
+dist-ssr/
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores e IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Artefactos temporales (previews de fuentes, etc.)
+.font-preview-*.png
+
+# Qoder
+.qoder/

@@ -1,0 +1,1 @@
+ALTER TABLE "candidates" ADD COLUMN "party_logo_url" text;
