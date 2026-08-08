@@ -1,6 +1,6 @@
 import type { CandidateResult } from '@/lib/types';
 
-export function ResultBar({ result }: { result: CandidateResult }) {
+export function ResultBar({ result, showVotes }: { result: CandidateResult; showVotes?: boolean }) {
 	const color = result.partyColor ?? '#64748b';
 	return (
 		<div className="space-y-1">
@@ -13,7 +13,8 @@ export function ResultBar({ result }: { result: CandidateResult }) {
 					)}
 				</div>
 				<span className="shrink-0 tabular-nums text-muted-foreground">
-					<span className="font-semibold text-foreground">{result.percent}%</span> · {result.votes}
+					<span className="font-semibold text-foreground">{result.percent}%</span>
+					{showVotes && <span> · {result.votes}</span>}
 				</span>
 			</div>
 			<div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">

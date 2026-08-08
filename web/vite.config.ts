@@ -19,6 +19,10 @@ export default defineConfig({
 				// Asi Auth.js genera el redirect_uri de Google apuntando a :5173, que es
 				// el origen donde el usuario guarda las cookies y termina el login.
 				changeOrigin: false
+			},
+			'/og': {
+				// Las imágenes OG se generan en el servidor (endpoint /og/resultados/:id.png).
+				target: 'http://localhost:3001'
 			}
 		}
 	}

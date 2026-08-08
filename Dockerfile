@@ -39,6 +39,9 @@ COPY --from=server-build /app/server/dist ./dist
 COPY server/scripts ./scripts
 COPY server/drizzle ./drizzle
 
+# Logos de partido para las imágenes OG (descargados con npm run db:logos)
+COPY server/assets ./assets
+
 # Frontend estático servido por Hono
 COPY --from=web-build /app/web/dist /app/web-dist
 ENV WEB_DIST=/app/web-dist

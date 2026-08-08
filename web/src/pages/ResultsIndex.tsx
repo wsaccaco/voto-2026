@@ -15,6 +15,7 @@ import {
 	visibleSurveys
 } from '@/lib/elections';
 import type { Survey, SurveyResults } from '@/lib/types';
+import { VOTES_THRESHOLD } from '@/lib/utils';
 
 type Filter = number | 'todas';
 
@@ -113,11 +114,13 @@ export default function ResultsIndex() {
 							{row.results && row.results.totalVotes > 0 ? (
 								<div className="space-y-4">
 									{row.results.results.map((r) => (
-										<ResultBar key={r.candidateId} result={r} />
+										<ResultBar key={r.candidateId} result={r} showVotes={row.results!.totalVotes > VOTES_THRESHOLD} />
 									))}
-									<p className="text-xs text-muted-foreground">
-										{row.results.totalVotes} voto(s) registrados
-									</p>
+									{row.results.totalVotes > VOTES_THRESHOLD && (
+										<p className="text-xs text-muted-foreground">
+											{row.results.totalVotes} voto(s) registrados
+										</p>
+									)}
 								</div>
 							) : row.failed ? (
 								<p className="py-4 text-center text-sm text-muted-foreground">No se pudieron cargar los resultados.</p>

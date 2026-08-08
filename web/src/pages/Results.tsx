@@ -8,6 +8,7 @@ import { ResultBar } from '@/components/ResultBar';
 import { StatCard } from '@/components/StatCard';
 import { api } from '@/lib/api';
 import type { SurveyResults } from '@/lib/types';
+import { VOTES_THRESHOLD } from '@/lib/utils';
 
 export default function Results() {
 	const { id } = useParams();
@@ -68,7 +69,7 @@ export default function Results() {
 
 			{/* Estadísticas */}
 			<div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-				<StatCard label="Votos totales" value={String(data.totalVotes)} />
+				{data.totalVotes > VOTES_THRESHOLD && <StatCard label="Votos totales" value={String(data.totalVotes)} />}
 				<StatCard label="Candidatos" value={String(data.results.length)} />
 				<StatCard
 					label="Líder"
@@ -84,7 +85,7 @@ export default function Results() {
 				</CardHeader>
 				<CardContent className="space-y-5">
 					{data.results.map((r) => (
-						<ResultBar key={r.candidateId} result={r} />
+						<ResultBar key={r.candidateId} result={r} showVotes={data.totalVotes > VOTES_THRESHOLD} />
 					))}
 					{data.totalVotes === 0 && (
 						<p className="py-6 text-center text-sm text-muted-foreground">

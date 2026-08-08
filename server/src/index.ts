@@ -8,6 +8,7 @@ import { env } from './env.js';
 import { ensureWeeklyCycle } from './lib/surveys.js';
 import { adminRoutes } from './routes/admin.js';
 import { cronRoutes } from './routes/cron.js';
+import { ogRoutes, resultadosHtmlHandler } from './routes/og.js';
 import { publicRoutes } from './routes/public.js';
 
 const app = new Hono();
@@ -38,6 +39,13 @@ app.onError((err, c) => {
 	console.error('[error]', err);
 	return c.json({ error: 'Error interno del servidor' }, 500);
 });
+
+// ---------------------------------------------------------------------------
+// Open Graph dinámico (imágenes + HTML con meta tags). Debe registrarse ANTES
+// del middleware estático para tener precedencia sobre el fallback SPA.
+// ---------------------------------------------------------------------------
+app.route('/og', ogRoutes);
+app.get('/resultados/:id', resultadosHtmlHandler);
 
 // ---------------------------------------------------------------------------
 // Frontend estático (build de Vite) con fallback SPA

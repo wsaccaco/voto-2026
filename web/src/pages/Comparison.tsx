@@ -31,6 +31,7 @@ import {
 import { PageLoader } from '@/components/PageLoader';
 import { api } from '@/lib/api';
 import type { Candidate, ComparisonPoint } from '@/lib/types';
+import { VOTES_THRESHOLD } from '@/lib/utils';
 
 type Grouping = 'semanal' | 'quincenal' | 'mensual';
 
@@ -239,7 +240,7 @@ export default function Comparison() {
 										<TableCell className="text-muted-foreground">Votos totales</TableCell>
 										{data.points.map((p) => (
 											<TableCell key={p.surveyId} className="text-right tabular-nums text-muted-foreground">
-												{p.totalVotes}
+												{p.totalVotes > VOTES_THRESHOLD ? p.totalVotes : '—'}
 											</TableCell>
 										))}
 									</TableRow>

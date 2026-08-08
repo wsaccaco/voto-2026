@@ -6,8 +6,11 @@ export const cronRoutes = new Hono();
 
 /**
  * POST /api/cron/weekly
+ * Respaldo OPCIONAL: el ciclo semanal ya corre dentro del proceso (al arrancar
+ * y cada 30 min, ver src/index.ts), por lo que este endpoint no es necesario
+ * en el despliegue normal. Si se usa (p. ej. desde Coolify), debe ejecutarse
+ * después del lunes 00:00 hora de Perú (America/Lima), p. ej. lunes 00:05.
  * Protegido con CRON_SECRET (header Authorization: Bearer <secret>).
- * Configurar en Coolify como cron job: cada lunes 00:05 hora de Perú (America/Lima).
  */
 cronRoutes.post('/weekly', async (c) => {
 	const auth = c.req.header('authorization') ?? '';
