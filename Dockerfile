@@ -36,8 +36,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 # tsx se necesita solo para ejecutar las migraciones al arrancar (scripts/migrate.ts)
 RUN npm install --no-save tsx
 
-# Código compilado, migraciones y scripts
-COPY server/dist ./dist
+# Código compilado (desde la etapa de build, no del contexto), migraciones y scripts
+COPY --from=server-build /app/server/dist ./dist
 COPY server/scripts ./scripts
 COPY server/drizzle ./drizzle
 
