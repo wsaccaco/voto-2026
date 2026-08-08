@@ -9,7 +9,7 @@ export const env = {
 		.filter(Boolean),
 	cronSecret: process.env.CRON_SECRET ?? '',
 	port: Number(process.env.PORT ?? 3001),
-	publicUrl: process.env.PUBLIC_URL ?? 'http://localhost:5173',
+	publicUrl: (process.env.PUBLIC_URL ?? 'http://localhost:5173').replace(/\/+$/, ''),
 	webDist: process.env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
 	nodeEnv: process.env.NODE_ENV ?? 'development'
 };

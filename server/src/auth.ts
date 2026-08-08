@@ -40,9 +40,18 @@ export const authConfig: AuthConfig = {
 	}
 };
 
-/** Handler universal de Auth.js para todas las rutas /api/auth/* */
+/**
+ * Handler universal de Auth.js para todas las rutas /api/auth/*.
+ * Detrás de un proxy TLS (Coolify/Traefik) el servidor recibe la petición en
+ * http:// (socket sin cifrar) y Auth.js generaría un redirect_uri http:// que
+ * Google rechaza con redirect_uri_mismatch. Se reconstruye el Request con el
+ * origin público (PUBLIC_URL) para que todo el flujo OAuth use https:// en
+ * producción.
+ */
 export function authHandler(c: Context): Promise<Response> {
-	return Auth(c.req.raw, authConfig);
+	const { pathname, search } = new URL(c.req.raw.url);
+	const request = new Request(`${env.publicUrl}${pathname}${search}`, c.req.raw);
+	return Auth(request, authConfig);
 }
 
 export interface SessionUser {
@@ -53,9 +62,9 @@ export interface SessionUser {
 	isAdmin: boolean;
 }
 
-/** Nombre de la cookie de sesión según el protocolo. */
-function sessionCookieName(req: Request): string {
-	return new URL(req.url).protocol === 'https:'
+/** Nombre de la cookie de sesión según el protocolo público (PUBLIC_URL). */
+function sessionCookieName(): string {
+	return env.publicUrl.startsWith('https:')
 		? '__Secure-authjs.session-token'
 		: 'authjs.session-token';
 }
@@ -65,7 +74,7 @@ function sessionCookieName(req: Request): string {
  * Devuelve null si no hay sesión válida.
  */
 export async function getSessionUser(c: Context): Promise<SessionUser | null> {
-	const cookieName = sessionCookieName(c.req.raw);
+	const cookieName = sessionCookieName();
 	const token = getCookie(c, cookieName);
 	if (!token) return null;
 	try {
