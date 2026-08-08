@@ -72,7 +72,7 @@ export async function getSurveyWithCandidates(surveyId: number) {
 }
 
 /**
- * Cédulas de la semana actual: encuestas abiertas y no vencidas con sus
+ * Encuestas de la semana actual: abiertas y no vencidas con sus
  * candidatos, en orden regional → provincial → distrital.
  */
 export async function listCurrentWeekBallots() {

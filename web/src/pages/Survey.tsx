@@ -155,7 +155,7 @@ export default function Survey() {
 						<p className="text-sm text-muted-foreground">
 							{location
 								? `Registraste que vives en ${location.district}, ${location.province}. La ${survey.electionName} es ${scope}.`
-								: `La ${survey.electionName} es ${scope}. Indícanos dónde vives para entregarte tus cédulas.`}
+								: `La ${survey.electionName} es ${scope}. Indícanos dónde vives para entregarte tus encuestas.`}
 						</p>
 						<div className="mt-2 flex w-full flex-col gap-2">
 							<Button asChild>

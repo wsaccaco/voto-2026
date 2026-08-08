@@ -7,14 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageLoader } from '@/components/PageLoader';
 import { ResultBar } from '@/components/ResultBar';
+import { VoteInvite } from '@/components/VoteInvite';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import {
 	cleanSurveyTitle,
 	formatDateRange,
 	getVotingLocation,
 	visibleSurveys
 } from '@/lib/elections';
-import type { Survey, SurveyResults } from '@/lib/types';
+import type { Survey, SurveyDetail, SurveyResults } from '@/lib/types';
 import { VOTES_THRESHOLD } from '@/lib/utils';
 
 type Filter = number | 'todas';
@@ -25,8 +27,11 @@ interface LiveRow extends Survey {
 }
 
 export default function ResultsIndex() {
+	const { user, loading: authLoading } = useAuth();
 	const [rows, setRows] = useState<LiveRow[] | null>(null);
 	const [filter, setFilter] = useState<Filter>('todas');
+	// Votos propios de la semana: para saber si ya participó (solo con sesión)
+	const [myVotes, setMyVotes] = useState<Record<number, number> | null>(null);
 
 	useEffect(() => {
 		let alive = true;
@@ -58,6 +63,16 @@ export default function ResultsIndex() {
 		};
 	}, []);
 
+	useEffect(() => {
+		if (authLoading || !user) return;
+		api
+			.get<{ surveys: SurveyDetail[]; myVotes: Record<number, number> }>('/week')
+			.then((d) => setMyVotes(d.myVotes))
+			.catch(() => {
+				/* sin impacto: la invitación se muestra igual */
+			});
+	}, [authLoading, user]);
+
 	if (!rows) return <PageLoader rows={3} />;
 
 	// Oculta las encuestas que no corresponden a la ubicación del usuario
@@ -65,6 +80,12 @@ export default function ResultsIndex() {
 	// Elecciones únicas presentes, en orden de aparición (regional primero)
 	const available = [...new Map(forLocation.map((r) => [r.electionId, r])).values()];
 	const visible = filter === 'todas' ? forLocation : forLocation.filter((r) => r.electionId === filter);
+
+	// Invitación a votar: encuestas abiertas del ámbito del usuario aún sin voto
+	const inviteScope = visibleSurveys(rows.filter((r) => r.status === 'abierta'), getVotingLocation());
+	const hasVotedAll =
+		inviteScope.length > 0 && myVotes !== null && inviteScope.every((s) => myVotes[s.id] !== undefined);
+	const inviting = inviteScope.length > 0 && !hasVotedAll;
 
 	return (
 		<div className="mx-auto max-w-3xl px-4 py-8">
@@ -74,6 +95,23 @@ export default function ResultsIndex() {
 				</p>
 				<h1 className="mt-1 text-2xl font-bold tracking-tight">Resultados de la semana</h1>
 			</div>
+
+			{/* CTA permanente: votar esta semana mientras haya encuestas pendientes */}
+			{inviting && (
+				<div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
+					<div>
+						<p className="text-sm font-semibold">Vota esta semana</p>
+						<p className="text-sm text-muted-foreground">
+							Los resultados se construyen con tu participación.
+						</p>
+					</div>
+					<Button asChild className="shrink-0">
+						<Link to="/votar">
+							<Vote className="mr-2 h-4 w-4" /> Votar ahora
+						</Link>
+					</Button>
+				</div>
+			)}
 
 			{/* Filtro por elección */}
 			{available.length > 1 && (
@@ -164,6 +202,13 @@ export default function ResultsIndex() {
 					</Link>
 				</Button>
 			</div>
+
+			{/* Invitación automática (modal) una vez por semana electoral */}
+			<VoteInvite
+				surveys={inviteScope}
+				hasVoted={hasVotedAll}
+				weekKey={inviteScope[0]?.weekLabel ?? ''}
+			/>
 		</div>
 	);
 }

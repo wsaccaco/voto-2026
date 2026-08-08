@@ -7,7 +7,7 @@ const LEGACY_KEY = 'encuesta:punto-votacion';
 
 /**
  * Lugar de residencia del elector dentro de la región Apurímac.
- * Determina sus cédulas: la regional siempre; la provincial según su
+ * Determina sus encuestas: la regional siempre; la provincial según su
  * provincia; la distrital solo si su distrito no es capital provincial.
  */
 export interface VotingLocation {
@@ -15,7 +15,7 @@ export interface VotingLocation {
 	district: string;
 }
 
-/** Orden fijo de presentación de las cédulas (como en el local de votación). */
+/** Orden fijo de presentación de las encuestas (como en el local de votación). */
 export const LEVEL_ORDER: ElectionLevel[] = ['regional', 'provincial', 'distrital'];
 
 export const LEVEL_LABELS: Record<ElectionLevel, string> = {

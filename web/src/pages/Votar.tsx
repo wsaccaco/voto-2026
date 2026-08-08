@@ -30,9 +30,9 @@ import { getDeviceFingerprint } from '@/lib/fingerprint';
 import type { SurveyDetail } from '@/lib/types';
 
 const LEVEL_BADGES = {
-	regional: 'Cédula regional',
-	provincial: 'Cédula provincial',
-	distrital: 'Cédula distrital'
+	regional: 'Encuesta regional',
+	provincial: 'Encuesta provincial',
+	distrital: 'Encuesta distrital'
 } as const;
 
 export default function Votar() {
@@ -58,7 +58,7 @@ export default function Votar() {
 			.catch(() => setError(true));
 	}, []);
 
-	// Solo las cédulas del ámbito del elector, en orden regional → provincial → distrital
+	// Solo las encuestas del ámbito del elector, en orden regional → provincial → distrital
 	const mine = useMemo(() => visibleSurveys(ballots ?? [], location), [ballots, location]);
 	const pending = mine.filter((b) => myVotes[b.id] === undefined);
 	const allVoted = mine.length > 0 && pending.length === 0;
@@ -74,7 +74,7 @@ export default function Votar() {
 			const fingerprint = await getDeviceFingerprint();
 			const res = await api.post<{ ok: boolean; voted: number[]; skipped: number[] }>('/vote', { votes, fingerprint });
 			toast.success('¡Tus votos fueron registrados! Gracias por participar.');
-			// Marcar como votadas las cédulas registradas (y las ya votadas antes)
+			// Marcar como votadas las encuestas registradas (y las ya votadas antes)
 			setMyVotes((prev) => {
 				const next = { ...prev };
 				for (const v of votes) next[v.surveyId] = v.candidateId;
@@ -96,7 +96,7 @@ export default function Votar() {
 	if (error) {
 		return (
 			<div className="mx-auto max-w-md px-4 py-16 text-center">
-				<h2 className="text-lg font-semibold">No pudimos cargar las cédulas</h2>
+				<h2 className="text-lg font-semibold">No pudimos cargar las encuestas</h2>
 				<p className="mt-1 text-sm text-muted-foreground">Intenta de nuevo en unos segundos.</p>
 				<Button asChild className="mt-4">
 					<Link to="/">Volver al inicio</Link>
@@ -116,7 +116,7 @@ export default function Votar() {
 						</span>
 						<h2 className="text-xl font-bold">¿Dónde vives?</h2>
 						<p className="text-sm text-muted-foreground">
-							Para entregarte las cédulas correctas (regional, provincial y distrital) necesitamos
+							Para entregarte las encuestas correctas (regional, provincial y distrital) necesitamos
 							saber tu provincia y distrito.
 						</p>
 						<Button asChild className="mt-2">
@@ -133,7 +133,7 @@ export default function Votar() {
 	if (mine.length === 0) {
 		return (
 			<div className="mx-auto max-w-md px-4 py-16 text-center">
-				<h2 className="text-lg font-semibold">No hay cédulas abiertas esta semana</h2>
+				<h2 className="text-lg font-semibold">No hay encuestas abiertas esta semana</h2>
 				<p className="mt-1 text-sm text-muted-foreground">Vuelve el lunes para la nueva jornada semanal.</p>
 				<Button asChild className="mt-4">
 					<Link to="/">Volver al inicio</Link>
@@ -142,7 +142,7 @@ export default function Votar() {
 		);
 	}
 
-	// Jornada completa: ya votó todas sus cédulas de la semana
+	// Jornada completa: ya votó todas sus encuestas de la semana
 	if (done || allVoted) {
 		return (
 			<div className="mx-auto max-w-lg px-4 py-10">
@@ -153,7 +153,7 @@ export default function Votar() {
 						</span>
 						<h2 className="text-xl font-bold">¡Votos registrados!</h2>
 						<p className="text-sm text-muted-foreground">
-							Ya participaste en las {mine.length} cédulas de la semana en{' '}
+							Ya participaste en las {mine.length} encuestas de la semana en{' '}
 							{locationLabel(location)}. Podrás votar de nuevo el lunes de la próxima semana si
 							cambiaste de opinión.
 						</p>
@@ -179,7 +179,7 @@ export default function Votar() {
 		);
 	}
 
-	// Requiere sesión solo para confirmar el voto; las cédulas se pueden revisar antes
+	// Requiere sesión solo para confirmar el voto; las encuestas se pueden revisar antes
 	const loggedIn = !authLoading && Boolean(user);
 
 	const readyCount = pending.filter((b) => selections[b.id] !== undefined).length;
@@ -192,7 +192,7 @@ export default function Votar() {
 				</p>
 				<h1 className="mt-1 text-2xl font-bold tracking-tight">Tu jornada de voto</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Marca una opción en cada cédula y confirma todo de una vez. Tu voto es anónimo y solo
+					Marca una opción en cada encuesta y confirma todo de una vez. Tu voto es anónimo y solo
 					puedes votar una vez por semana.
 				</p>
 			</div>

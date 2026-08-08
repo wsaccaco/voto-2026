@@ -132,7 +132,7 @@ publicRoutes.post('/surveys/:id/vote', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// Cédulas de la semana actual (con candidatos y votos propios)
+// Encuestas de la semana actual (con candidatos y votos propios)
 // ---------------------------------------------------------------------------
 publicRoutes.get('/week', async (c) => {
 	const surveys = await listCurrentWeekBallots();
@@ -156,7 +156,7 @@ publicRoutes.get('/week', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// Voto por lote: una cédula por nivel en la misma sesión de voto
+// Voto por lote: una encuesta por nivel en la misma sesión de voto
 // ---------------------------------------------------------------------------
 publicRoutes.post('/vote', async (c) => {
 	const session = await getSessionUser(c);
