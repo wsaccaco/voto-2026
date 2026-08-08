@@ -4,15 +4,16 @@ import type { CandidateResult } from '@/lib/types';
 
 export function ResultBar({ result, showVotes }: { result: CandidateResult; showVotes?: boolean }) {
 	const color = result.partyColor ?? '#64748b';
+	// Las opciones especiales (Indeciso, Voto en blanco) no tienen partido ni
+	// logo: punto de color directo, sin pedir /api/party-logo (evita 404s).
+	const hasParty = !result.isSpecial;
 	// Si el partido no tiene logo (404 del servidor), caer al punto de color.
 	const [logoError, setLogoError] = useState(false);
 	return (
 		<div className="space-y-1">
 			<div className="flex items-center justify-between gap-2 text-sm">
 				<div className="flex min-w-0 items-center gap-2">
-					{logoError ? (
-						<span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-					) : (
+					{hasParty && !logoError ? (
 						<img
 							src={partyLogoSrc(result.party, result.name)}
 							alt={result.party ?? result.name}
@@ -22,6 +23,8 @@ export function ResultBar({ result, showVotes }: { result: CandidateResult; show
 							onError={() => setLogoError(true)}
 							className="h-9 w-9 shrink-0 rounded-md object-contain"
 						/>
+					) : (
+						<span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
 					)}
 					<span className="truncate font-medium">{result.name}</span>
 					{result.isSpecial && (

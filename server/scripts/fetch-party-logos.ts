@@ -4,6 +4,7 @@ import { access, mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { Resvg } from '@resvg/resvg-js';
+import sharp, { type RawData } from 'sharp';
 import { db } from '../src/db/index.js';
 import { candidates } from '../src/db/schema.js';
 import { PARTY_LOGO_WEBP_SIZE, partyLogoBaseName } from '../src/lib/party-logos.js';
@@ -57,21 +58,65 @@ async function toWebpIcon(base: string): Promise<boolean> {
 }
 
 /** Detecta el formato por bytes mágicos (más fiable que la extensión de la URL). */
-function sniffFormat(buf: Buffer): 'svg' | 'png' | 'jpg' | 'webp' | 'gif' | 'unknown' {
+function sniffFormat(buf: Buffer): 'svg' | 'png' | 'jpg' | 'webp' | 'gif' | 'bmp' | 'unknown' {
 	if (buf.subarray(0, 4).toString('latin1') === '\x89PNG') return 'png';
 	if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
 	if (buf.subarray(0, 4).toString('latin1') === 'RIFF' && buf.subarray(8, 12).toString('latin1') === 'WEBP') {
 		return 'webp';
 	}
 	if (buf.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif';
+	// Algunos blobs del JNE sirven BMP aunque la URL termine en .png.
+	if (buf[0] === 0x42 && buf[1] === 0x4d) return 'bmp';
 	if (buf.subarray(0, 256).toString('utf8').match(/^\s*(?:<\?xml[\s\S]*?\?>)?\s*<svg[\s>]/i)) return 'svg';
 	return 'unknown';
 }
 
-/** Recodifica cualquier imagen (SVG/PNG/JPEG/WebP/GIF) a PNG cuadrado del ancho pedido. */
-function toPng(buf: Buffer, width: number): Buffer {
+/**
+ * Decodifica BMP sin compresión de 24 bpp a RGB crudo (filas de arriba a
+ * abajo). El blob del JNE de algún partido sirve BMP aunque la URL termine
+ * en .png, y libvips/sharp no trae decodificador BMP: por eso se hace a mano.
+ */
+function decodeBmp(buf: Buffer): { data: RawData; width: number; height: number } {
+	const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+	if (buf[0] !== 0x42 || buf[1] !== 0x4d) throw new Error('no es BMP');
+	const dataOffset = dv.getUint32(10, true);
+	const width = dv.getInt32(18, true);
+	const heightSigned = dv.getInt32(22, true);
+	const bpp = dv.getUint16(28, true);
+	const compression = dv.getUint32(30, true);
+	if (bpp !== 24 || compression !== 0 || width <= 0 || heightSigned === 0) {
+		throw new Error(`BMP no soportado (bpp=${bpp}, compresión=${compression})`);
+	}
+	const height = Math.abs(heightSigned);
+	const topDown = heightSigned < 0;
+	const stride = Math.ceil((width * 3) / 4) * 4; // filas alineadas a 4 bytes
+	const data = Buffer.alloc(width * height * 3);
+	for (let y = 0; y < height; y++) {
+		const srcRow = dataOffset + (topDown ? y : height - 1 - y) * stride;
+		const dstRow = y * width * 3;
+		for (let x = 0; x < width; x++) {
+			const s = srcRow + x * 3;
+			data[dstRow + x * 3] = buf[s + 2]; // BMP guarda BGR
+			data[dstRow + x * 3 + 1] = buf[s + 1];
+			data[dstRow + x * 3 + 2] = buf[s];
+		}
+	}
+	return { data, width, height };
+}
+
+/** Recodifica cualquier imagen (SVG/PNG/JPEG/WebP/GIF/BMP) a PNG cuadrado del ancho pedido. */
+async function toPng(buf: Buffer, width: number): Promise<Buffer> {
 	const mime = sniffFormat(buf);
 	if (mime === 'unknown') throw new Error('formato no reconocido');
+	// resvg/usvg no saben incrustar BMP y libvips no lo decodifica: se pasa a
+	// PNG vía sharp alimentándolo con los píxeles crudos.
+	if (mime === 'bmp') {
+		const { data, width: w, height: h } = decodeBmp(buf);
+		return sharp(data, { raw: { width: w, height: h, channels: 3 } })
+			.resize(width, width, { fit: 'fill' }) // mismo estirado a cuadrado que la vía SVG
+			.png()
+			.toBuffer();
+	}
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${width}"><image href="data:image/${mime === 'svg' ? 'svg+xml' : mime === 'jpg' ? 'jpeg' : mime};base64,${buf.toString('base64')}" width="${width}" height="${width}"/></svg>`;
 	return new Resvg(Buffer.from(svg), { fitTo: { mode: 'width', value: width } }).render().asPng();
 }
@@ -123,7 +168,7 @@ async function main() {
 			const buf = Buffer.from(await res.arrayBuffer());
 			// Siempre PNG optimizado: los blobs del JNE vienen en formatos y tamaños
 			// dispares (SVG, JPEG de cientos de KB) y resvg los rasteriza igual.
-			const png = toPng(buf, LOGO_SIZE);
+			const png = await toPng(buf, LOGO_SIZE);
 			const fileName = `${base}.png`;
 			await writeFile(`${OUT_DIR}${fileName}`, png);
 			ok++;

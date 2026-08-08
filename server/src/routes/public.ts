@@ -301,7 +301,9 @@ publicRoutes.get('/party-logo', async (c) => {
 	if (!logo) return c.notFound();
 	return c.body(new Uint8Array(logo.data), 200, {
 		'Content-Type': logo.mime,
-		'Cache-Control': 'public, max-age=86400'
+		// Cacheable para siempre: la URL se resuelve con el hash sha256 del
+		// nombre del partido, así que es estable y el archivo nunca cambia.
+		'Cache-Control': 'public, max-age=31536000, immutable'
 	});
 });
 
