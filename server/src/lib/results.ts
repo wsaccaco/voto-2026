@@ -1,6 +1,7 @@
 import { and, asc, count, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { candidates, responses, surveys, userProfiles } from '../db/schema.js';
+import { countdownLabel } from './weeks.js';
 
 // ---------------------------------------------------------------------------
 // Caché simple en memoria (TTL corto) para no golpear la BD con el polling
@@ -108,7 +109,7 @@ export async function getComparison(electionId: number, grouping: Grouping) {
 			points.push({
 				surveyId: s.id,
 				weekNumber: s.weekNumber,
-				label: `S${s.weekNumber}`,
+				label: countdownLabel(s.startDate),
 				percents: Object.fromEntries(res.results.map((r) => [r.candidateId, r.percent])),
 				totalVotes: res.totalVotes
 			});

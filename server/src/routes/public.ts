@@ -10,6 +10,7 @@ import { candidates, deviceFingerprints, responses, surveys, userProfiles, users
 import { getComparison, getSurveyResults, type Grouping } from '../lib/results.js';
 import { rateLimit, sha256 } from '../lib/security.js';
 import { getSurveyWithCandidates, listCurrentWeekBallots, listOpenSurveys } from '../lib/surveys.js';
+import { countdownOf } from '../lib/weeks.js';
 
 export const publicRoutes = new Hono();
 
@@ -36,7 +37,8 @@ async function findProfile(session: SessionUser) {
 // ---------------------------------------------------------------------------
 publicRoutes.get('/surveys', async (c) => {
 	const open = await listOpenSurveys();
-	return c.json({ surveys: open });
+	// Cuenta regresiva de la semana en curso, para el badge del frontend
+	return c.json({ surveys: open, week: countdownOf(new Date()) });
 });
 
 publicRoutes.get('/surveys/:id', async (c) => {

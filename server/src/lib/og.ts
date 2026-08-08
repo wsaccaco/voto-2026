@@ -8,6 +8,7 @@ import sharp from 'sharp';
 import { partyLogoBaseName } from './party-logos.js';
 import { getSurveyResults, type CandidateResult } from './results.js';
 import { getSurveyWithCandidates } from './surveys.js';
+import { countdownLabel } from './weeks.js';
 
 // ---------------------------------------------------------------------------
 // Generación de imágenes Open Graph (1200x630) para páginas de resultados.
@@ -204,7 +205,7 @@ function buildTree(
 		h('div', { style: { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' } },
 			h('span', { style: { fontSize: 20, fontWeight: 800, letterSpacing: '0.16em', color: PRIMARY } }, 'ANDAHUAYLAS VOTA'),
 			h('span', { style: { fontSize: 18, fontWeight: 700, color: MUTED } },
-				`SEMANA ${detail.weekNumber} · ${detail.weekLabel.toUpperCase()}`
+				`SEMANA ${countdownLabel(detail.startDate)} · ${detail.weekLabel.toUpperCase()}`
 			)
 		),
 		// Título + tarjeta

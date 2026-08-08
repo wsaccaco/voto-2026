@@ -26,6 +26,7 @@ import { ResultBar } from '@/components/ResultBar';
 import { StatCard } from '@/components/StatCard';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { countdownLabel } from '@/lib/weeks';
 import type { CandidateResult, SurveyResults } from '@/lib/types';
 
 interface ElectionRow {
@@ -252,7 +253,7 @@ export default function Admin() {
 										<div key={s.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
 											<div>
 												<p className="font-medium">{electionName(s.electionId)}</p>
-												<p className="text-xs text-muted-foreground">Semana {s.weekNumber}</p>
+												<p className="text-xs text-muted-foreground">Semana {countdownLabel(s.startDate)}</p>
 											</div>
 											<div className="flex items-center gap-2">
 												<Badge>{STATUS_LABEL[s.status]}</Badge>
@@ -290,7 +291,7 @@ export default function Admin() {
 							<SelectContent>
 								{surveys.map((s) => (
 									<SelectItem key={s.id} value={String(s.id)}>
-										Semana {s.weekNumber} · {electionName(s.electionId)}
+										Semana {countdownLabel(s.startDate)} · {electionName(s.electionId)}
 									</SelectItem>
 								))}
 							</SelectContent>

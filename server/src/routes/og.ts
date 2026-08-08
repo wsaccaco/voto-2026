@@ -5,6 +5,7 @@ import { env } from '../env.js';
 import { renderSurveyOgImage } from '../lib/og.js';
 import { getSurveyResults } from '../lib/results.js';
 import { getSurveyWithCandidates } from '../lib/surveys.js';
+import { countdownLabel } from '../lib/weeks.js';
 
 // ---------------------------------------------------------------------------
 // Imágenes y meta tags Open Graph dinámicos para /resultados/:id
@@ -85,7 +86,7 @@ export const resultadosHtmlHandler: MiddlewareHandler = async (c, next) => {
 		results.totalVotes > 0 && leader
 			? `${leader.name} lidera con ${leader.percent}% · ${fmtVotes.format(results.totalVotes)} votos registrados. Entra y mira los resultados completos.`
 			: 'Aún no hay votos en esta encuesta. Participa y mira los resultados en vivo.';
-	const title = `Resultados · ${survey.electionName} · Semana ${survey.weekNumber} | Andahuaylas Vota`;
+	const title = `Resultados · ${survey.electionName} · Semana ${countdownLabel(survey.startDate)} | Andahuaylas Vota`;
 	const url = `${env.publicUrl}/resultados/${id}`;
 	// ?v= por semana: invalida la caché del crawler (WhatsApp/Facebook) sin perder frescura intra-semana
 	const image = `${env.publicUrl}/og/resultados/${id}.webp?v=${survey.weekNumber}`;

@@ -21,15 +21,6 @@ import { APURIMAC_PROVINCES, districtsOf, REGION_NAME } from '@/lib/geo';
 import type { Survey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-function isoWeekNumber(d: Date) {
-	// Mismo algoritmo ISO-8601 que el servidor, sobre el día civil local.
-	const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-	const dayNum = date.getUTCDay() || 7;
-	date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-	const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-	return Math.ceil(((date.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
-}
-
 /** Card de encuesta con una sola fecha y sin información repetida. */
 function SurveyCard({ s }: { s: Survey }) {
 	const open = s.status === 'abierta';
@@ -125,15 +116,15 @@ function LocationPicker({ onPick }: { onPick: (loc: VotingLocation) => void }) {
 }
 
 export default function Home() {
-	const [surveys, setSurveys] = useState<Survey[] | null>(null);
+	const [data, setData] = useState<{ surveys: Survey[]; week: { position: number; total: number } | null } | null>(null);
 	const [error, setError] = useState(false);
 	const [location, setLocation] = useState<VotingLocation | null>(() => getVotingLocation());
 	const [viewAll, setViewAll] = useState(false);
 
 	useEffect(() => {
 		api
-			.get<{ surveys: Survey[] }>('/surveys')
-			.then((d) => setSurveys(d.surveys))
+			.get<{ surveys: Survey[]; week: { position: number; total: number } | null }>('/surveys')
+			.then(setData)
 			.catch(() => setError(true));
 	}, []);
 
@@ -146,8 +137,9 @@ export default function Home() {
 		);
 	}
 
-	if (!surveys) return <PageLoader rows={3} />;
+	if (!data) return <PageLoader rows={3} />;
 
+	const surveys = data.surveys;
 	const needsLocation = !location && !viewAll;
 	const visible = viewAll ? surveys : visibleSurveys(surveys, location);
 	const now = new Date();
@@ -170,7 +162,11 @@ export default function Home() {
 		<div className="mx-auto max-w-5xl px-4 py-8">
 			{/* Hero */}
 			<section className="mb-10 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-10">
-				<Badge className="mb-3">Semana {isoWeekNumber(new Date())}</Badge>
+				{data.week && (
+					<Badge className="mb-3">
+						Semana {data.week.position}/{data.week.total}
+					</Badge>
+				)}
 				<h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
 					¿A quién elegirías hoy en {REGION_NAME}?
 				</h1>

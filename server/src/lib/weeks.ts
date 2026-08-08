@@ -4,6 +4,8 @@
  * 23:59:59, siempre en hora de Perú (America/Lima, UTC-5 fijo, sin horario de
  * verano), independientemente de la zona horaria del servidor.
  * El número de semana es el ISO-8601 del día civil peruano.
+ * La cuenta regresiva electoral (etiqueta "N/M" de la interfaz) se calcula
+ * contra la semana del día de las elecciones.
  */
 
 /** Offset de Perú (America/Lima) respecto a UTC, en milisegundos. */
@@ -55,4 +57,33 @@ export function nextWeekRange(date: Date): { start: Date; end: Date } {
 export function weekLabel(start: Date, end: Date): string {
 	const fmt = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short', timeZone: 'America/Lima' });
 	return `${fmt.format(start)} – ${fmt.format(end)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Cuenta regresiva electoral
+// ---------------------------------------------------------------------------
+
+/** Día de las elecciones: domingo 4 de octubre de 2026 (ERM 2026, hora de Perú). */
+export const ELECTION_DATE = new Date(Date.UTC(2026, 9, 4, 5, 0, 0));
+
+/** Duración de la cuenta regresiva en semanas: la semana de las elecciones es la N/N. */
+export const COUNTDOWN_TOTAL_WEEKS = 8;
+
+/**
+ * Posición (1..N) y total de la cuenta regresiva para la semana que contiene
+ * `date`: la primera semana de la campaña es "1/N", la de las elecciones "N/N"
+ * y las semanas fuera de la campaña quedan acotadas al rango.
+ */
+export function countdownOf(date: Date): { position: number; total: number } {
+	const electionWeekStart = mondayOfWeek(ELECTION_DATE);
+	const weekStart = mondayOfWeek(date);
+	const weeksLeft = Math.round((electionWeekStart.getTime() - weekStart.getTime()) / (7 * 86_400_000));
+	const position = Math.min(COUNTDOWN_TOTAL_WEEKS, Math.max(1, COUNTDOWN_TOTAL_WEEKS - weeksLeft + 1));
+	return { position, total: COUNTDOWN_TOTAL_WEEKS };
+}
+
+/** Etiqueta de la cuenta regresiva, ej. "1/8" para la semana en curso. */
+export function countdownLabel(date: Date): string {
+	const { position, total } = countdownOf(date);
+	return `${position}/${total}`;
 }
