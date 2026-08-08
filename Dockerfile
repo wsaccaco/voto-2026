@@ -33,8 +33,6 @@ ENV NODE_ENV=production
 # Dependencias de producción
 COPY server/package.json server/package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-# tsx se necesita solo para ejecutar las migraciones al arrancar (scripts/migrate.ts)
-RUN npm install --no-save tsx
 
 # Código compilado (desde la etapa de build, no del contexto), migraciones y scripts
 COPY --from=server-build /app/server/dist ./dist
@@ -49,5 +47,5 @@ ENV WEB_DIST=/app/web-dist
 ENV PORT=3000
 EXPOSE 3000
 
-# Aplica migraciones de Drizzle y luego arranca el servidor
-CMD ["sh", "-c", "node --import tsx scripts/migrate.ts && node dist/index.js"]
+# Aplica migraciones de Drizzle (Node 22.18+ ejecuta .ts nativamente) y luego arranca el servidor
+CMD ["sh", "-c", "node scripts/migrate.ts && node dist/index.js"]
