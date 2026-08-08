@@ -22,9 +22,12 @@ import type { Survey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 function isoWeekNumber(d: Date) {
-	const start = new Date(d.getFullYear(), 0, 1);
-	const days = Math.floor((d.getTime() - start.getTime()) / 86_400_000);
-	return Math.ceil((days + start.getDay() + 1) / 7);
+	// Mismo algoritmo ISO-8601 que el servidor, sobre el día civil local.
+	const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+	const dayNum = date.getUTCDay() || 7;
+	date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+	const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+	return Math.ceil(((date.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
 }
 
 /** Card de encuesta con una sola fecha y sin información repetida. */

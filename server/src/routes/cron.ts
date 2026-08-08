@@ -7,7 +7,7 @@ export const cronRoutes = new Hono();
 /**
  * POST /api/cron/weekly
  * Protegido con CRON_SECRET (header Authorization: Bearer <secret>).
- * Configurar en Coolify como cron job: cada lunes 00:05.
+ * Configurar en Coolify como cron job: cada lunes 00:05 hora de Perú (America/Lima).
  */
 cronRoutes.post('/weekly', async (c) => {
 	const auth = c.req.header('authorization') ?? '';
