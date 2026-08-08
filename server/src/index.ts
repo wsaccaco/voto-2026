@@ -50,8 +50,35 @@ app.get('/resultados/:id', resultadosHtmlHandler);
 // ---------------------------------------------------------------------------
 // Frontend estático (build de Vite) con fallback SPA
 // ---------------------------------------------------------------------------
+// Caché de despliegue seguro: los assets de Vite llevan hash en el nombre
+// (cambian en cada build), así que pueden cachearse para siempre; index.html
+// en cambio debe revalidarse siempre, porque es el que apunta a los hashes.
+// Si el navegador guarda un index.html viejo tras un redeploy, pedirá JS con
+// hashes que ya no existen y el fallback SPA les devolvería HTML, causando
+// "Failed to load module script ... MIME type of text/html".
+app.use('/assets/*', async (c, next) => {
+	await next();
+	if (c.res.status === 200) {
+		c.res.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+	}
+});
+
+// Todo HTML estático (index.html en / o en rutas SPA) se revalida siempre.
+app.use('*', async (c, next) => {
+	await next();
+	if (c.res.headers.get('Content-Type')?.includes('text/html')) {
+		c.res.headers.set('Cache-Control', 'no-cache');
+	}
+});
+
 app.use('*', serveStatic({ root: env.webDist }));
-app.get('*', serveStatic({ root: env.webDist, path: 'index.html' }));
+
+const serveIndexHtml = serveStatic({ root: env.webDist, path: 'index.html' });
+app.get('*', async (c, next) => {
+	// Un asset inexistente (/assets/*) nunca debe caer al index.html: 404.
+	if (c.req.path.startsWith('/assets/')) return c.notFound();
+	return serveIndexHtml(c, next);
+});
 
 // ---------------------------------------------------------------------------
 // Ciclo semanal: verificación al arranque + cada 30 minutos
