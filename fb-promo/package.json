@@ -1,0 +1,26 @@
+{
+	"name": "fb-promo",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Publicador automatizado de promociones en grupos de Facebook para Andahuaylas Vota",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"login": "tsx src/index.ts login",
+		"deploy-session": "tsx src/index.ts deploy-session",
+		"dry-run": "tsx src/index.ts dry-run",
+		"once": "tsx src/index.ts once",
+		"start": "tsx src/index.ts run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"playwright": "^1.49.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0",
+		"tsx": "^4.19.2",
+		"typescript": "^5.7.2"
+	}
+}

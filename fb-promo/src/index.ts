@@ -1,0 +1,264 @@
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+import type { AppConfig, WindowName } from './config.js';
+import { WINDOW_LABELS, WINDOW_NAMES, loadConfig, loadDeployConfig, loadTemplates } from './config.js';
+import { generatePost } from './content.js';
+import { alert, log } from './log.js';
+import {
+	BlockedError,
+	FacebookPoster,
+	PostFailedError,
+	SessionExpiredError,
+	humanDelay,
+	loginInteractive,
+	sleep,
+	storageStateFile
+} from './poster.js';
+import { activeWindow, cycleDelayMs, dateKey, nextWindowStart, pickGroupsForCycle, recordPost, wallParts } from './scheduler.js';
+import { emptyState, loadState, rolloverIfNeeded, saveState, type State } from './state.js';
+
+// CLI del publicador:
+//   login           login interactivo local (máquina con GUI), exporta storageState
+//   deploy-session  copia el storageState al servidor vía scp
+//   dry-run         simula el planificador sin abrir navegador ni publicar
+//   once            publica 1 ciclo y termina (pruebas)
+//   run             daemon 24/7 headless
+// Flags: --max-per-day N (publicaciones/día por grupo, máx. 3)
+
+function refreshState(config: AppConfig): State {
+	const key = dateKey(new Date(), config.timezone);
+	let state = loadState() ?? emptyState(key);
+	state = rolloverIfNeeded(state, key);
+	return state;
+}
+
+function localNowLabel(config: AppConfig): string {
+	const now = new Date();
+	const p = wallParts(now, config.timezone);
+	return `${dateKey(now, config.timezone)} ${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+}
+
+// Publica en los grupos elegibles del ciclo actual. Lanza SessionExpiredError
+// o BlockedError si la sesión murió o Facebook mostró un control.
+async function runCycle(
+	config: AppConfig,
+	templates: string[],
+	state: State,
+	windowName: WindowName,
+	poster: FacebookPoster
+): Promise<number> {
+	const now = new Date();
+	const groups = pickGroupsForCycle(config, state, windowName, now);
+	if (groups.length === 0) {
+		log.info(`[${WINDOW_LABELS[windowName]}] Sin grupos elegibles en este ciclo.`);
+		return 0;
+	}
+
+	let posted = 0;
+	for (const group of groups) {
+		if (state.todayGlobalPosts >= config.maxPerDayGlobal) {
+			log.warn('Tope global diario alcanzado; no se publica más hoy.');
+			break;
+		}
+		const { text, templateIndex } = generatePost(group, templates, state.recentTemplates[group.id] ?? []);
+		log.info(`[${WINDOW_LABELS[windowName]}] Publicando en "${group.name}": ${text}`);
+		try {
+			await poster.postToGroup(group, text);
+		} catch (err) {
+			if (err instanceof PostFailedError) {
+				log.warn(`Fallo al publicar en "${group.name}": ${err.message} (se omite este grupo)`);
+				continue;
+			}
+			throw err;
+		}
+		recordPost(state, group.id, windowName, templateIndex, new Date());
+		saveState(state);
+		posted += 1;
+		if (posted < groups.length) await humanDelay();
+	}
+	return posted;
+}
+
+async function handleFatal(err: unknown, poster: FacebookPoster): Promise<never> {
+	if (err instanceof SessionExpiredError) {
+		alert(`Sesión expirada: ${err.message} Flujo de recuperación: "npm run login" en una máquina con GUI, luego "npm run deploy-session" y reiniciar el daemon.`);
+	} else if (err instanceof BlockedError) {
+		alert(`Facebook mostró un control/checkpoint: ${err.message} Revisa la cuenta manualmente y reduce el ritmo antes de reiniciar.`);
+	} else {
+		log.error(`Error inesperado: ${(err as Error).stack ?? String(err)}`);
+	}
+	await poster.close();
+	process.exit(1);
+}
+
+async function commandOnce(config: AppConfig, templates: string[], windowArg?: string): Promise<void> {
+	const state = refreshState(config);
+	const now = new Date();
+	let windowName: WindowName | undefined = activeWindow(config, now)?.name;
+	if (windowArg) {
+		if (!WINDOW_NAMES.includes(windowArg as WindowName)) {
+			throw new Error(`--window debe ser uno de: ${WINDOW_NAMES.join(', ')}`);
+		}
+		windowName = windowArg as WindowName;
+	}
+	if (!windowName) {
+		log.warn(`Fuera de franja (${localNowLabel(config)}). Usa "--window morning|afternoon|evening" para forzar la prueba, o "npm run dry-run" para ver el plan.`);
+		process.exit(2);
+	}
+	const poster = new FacebookPoster(true);
+	try {
+		await poster.start();
+		await poster.verifySession();
+		const posted = await runCycle(config, templates, state, windowName, poster);
+		log.info(`Ciclo terminado: ${posted} publicación(es).`);
+	} catch (err) {
+		await handleFatal(err, poster);
+	} finally {
+		await poster.close();
+	}
+}
+
+async function commandRun(config: AppConfig, templates: string[]): Promise<void> {
+	log.info(`Daemon iniciado (${localNowLabel(config)} hora ${config.timezone}). Grupos: ${config.groups.length}.`);
+	let state = refreshState(config);
+	saveState(state);
+
+	const poster = new FacebookPoster(true);
+	try {
+		await poster.start();
+		await poster.verifySession();
+	} catch (err) {
+		await handleFatal(err, poster);
+	}
+
+	const shutdown = async (): Promise<void> => {
+		log.info('Deteniendo daemon...');
+		await poster.close();
+		process.exit(0);
+	};
+	process.on('SIGINT', shutdown);
+	process.on('SIGTERM', shutdown);
+
+	for (;;) {
+		state = refreshState(config);
+		const now = new Date();
+		const window = activeWindow(config, now);
+		if (!window) {
+			const next = nextWindowStart(config, now);
+			log.info(`Fuera de franja (${localNowLabel(config)}). Durmiendo hasta la próxima franja: ${next.toISOString()}`);
+			await sleep(Math.max(60_000, next.getTime() - now.getTime()));
+			continue;
+		}
+		try {
+			await runCycle(config, templates, state, window.name, poster);
+		} catch (err) {
+			await handleFatal(err, poster);
+		}
+		const delay = Math.min(cycleDelayMs(config), window.end.getTime() - Date.now());
+		if (delay > 0) {
+			log.info(`Próximo ciclo en ${Math.round(delay / 60_000)} min.`);
+			await sleep(delay);
+		}
+	}
+}
+
+// Simulación sin navegador: muestra qué publicaría y cuándo durante varios ciclos.
+function commandDryRun(config: AppConfig, templates: string[]): void {
+	const state = refreshState(config);
+	let now = new Date();
+	log.info(`Simulación desde ${localNowLabel(config)} (hora ${config.timezone}). No se publica nada.`);
+
+	for (let cycle = 0; cycle < 8; cycle++) {
+		let window = activeWindow(config, now);
+		if (!window) {
+			now = nextWindowStart(config, now);
+			window = activeWindow(config, now);
+		}
+		if (!window) break;
+
+		const groups = pickGroupsForCycle(config, state, window.name, now);
+		if (groups.length === 0) {
+			log.info(`[ciclo ${cycle + 1} · ${WINDOW_LABELS[window.name]}] sin grupos elegibles; avanzando al fin de la franja.`);
+			now = window.end;
+			continue;
+		}
+		for (const group of groups) {
+			const { text, templateIndex } = generatePost(group, templates, state.recentTemplates[group.id] ?? []);
+			log.info(`[ciclo ${cycle + 1} · ${WINDOW_LABELS[window.name]} · ${now.toISOString()}] "${group.name}" <- ${text}`);
+			recordPost(state, group.id, window.name, templateIndex, now);
+		}
+		now = new Date(now.getTime() + cycleDelayMs(config));
+	}
+	log.info('Fin de la simulación.');
+}
+
+function commandDeploySession(): void {
+	if (!existsSync(storageStateFile)) {
+		throw new Error(`No existe ${storageStateFile}. Ejecuta primero "npm run login".`);
+	}
+	const deploy = loadDeployConfig();
+	if (/REEMPLAZAR|IP_O_HOST/.test(deploy.host)) {
+		throw new Error('config/deploy.json todavía tiene valores de ejemplo: edita host, user y remotePath.');
+	}
+	const target = `${deploy.user}@${deploy.host}`;
+	log.info(`Creando directorio remoto y copiando storageState a ${target}:${deploy.remotePath}`);
+	const mkdir = spawnSync('ssh', [target, `mkdir -p '${deploy.remotePath}'`], { stdio: 'inherit' });
+	if (mkdir.status !== 0) throw new Error('No se pudo crear el directorio remoto por SSH.');
+	const scp = spawnSync('scp', [storageStateFile, `${target}:${deploy.remotePath}/storage-state.json`], { stdio: 'inherit' });
+	if (scp.status !== 0) throw new Error('scp falló al copiar el storageState.');
+	log.info('Listo. Reinicia el daemon en el servidor para que tome la nueva sesión.');
+}
+
+function printUsage(): void {
+	console.log(`Uso: npm run <comando>
+  login            Login interactivo local (requiere GUI); exporta la sesión
+  deploy-session   Copia la sesión al servidor (configura config/deploy.json)
+  dry-run          Simula el planificador sin publicar
+  once             Publica 1 ciclo y termina (dentro de una franja activa)
+  start            Daemon 24/7 headless
+Flags: --max-per-day N  publicaciones/día por grupo (1-3, default 3)
+       --window W       solo "once": fuerza la franja (morning|afternoon|evening)`);
+}
+
+async function main(): Promise<void> {
+	const { values, positionals } = parseArgs({
+		allowPositionals: true,
+		options: {
+			'max-per-day': { type: 'string' },
+			window: { type: 'string' }
+		}
+	});
+	const command = positionals[0];
+	const validCommands = ['login', 'deploy-session', 'dry-run', 'once', 'run'];
+	if (!command || !validCommands.includes(command)) {
+		printUsage();
+		process.exit(command ? 1 : 0);
+	}
+
+	if (command === 'login') {
+		await loginInteractive();
+		return;
+	}
+	if (command === 'deploy-session') {
+		commandDeploySession();
+		return;
+	}
+
+	const config = loadConfig();
+	if (values['max-per-day']) {
+		const n = Number(values['max-per-day']);
+		if (!Number.isInteger(n) || n < 1 || n > 3) throw new Error('--max-per-day debe ser un entero entre 1 y 3');
+		config.maxPerDayPerGroup = n;
+	}
+	const templates = loadTemplates();
+
+	if (command === 'dry-run') commandDryRun(config, templates);
+	else if (command === 'once') await commandOnce(config, templates, values.window);
+	else await commandRun(config, templates);
+}
+
+main().catch((err) => {
+	console.error(err instanceof Error ? err.message : err);
+	process.exit(1);
+});

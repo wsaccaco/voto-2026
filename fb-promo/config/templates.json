@@ -1,0 +1,19 @@
+{
+	"templates": [
+		"Vecinos de {distrito}, ¿ya viste quién va primero en la encuesta de esta semana? Resultados en vivo: {enlace}",
+		"La encuesta electoral de {distrito} se actualiza cada semana. Participa con tu voto y mira los resultados al instante: {enlace}",
+		"¿Por quién votaría la gente de {distrito}? Entra, vota y compara los resultados en tiempo real: {enlace}",
+		"Resultados actualizados de la encuesta en {distrito}. Tu voto también cuenta: {enlace}",
+		"Semana nueva, encuesta nueva en {distrito}. Mira cómo va la intención de voto: {enlace}",
+		"Ya hay nuevos resultados de la encuesta electoral en {distrito}. Revisa quién lidera esta semana: {enlace}",
+		"Tu opinión suma: participa en la encuesta semanal de {distrito} y ve los resultados en vivo: {enlace}",
+		"¿Curioso por saber cómo va la intención de voto en {distrito}? Resultados aquí: {enlace}",
+		"Encuesta ciudadana de {distrito}: vota en segundos y compara los resultados con los de semanas anteriores: {enlace}",
+		"Así va la carrera electoral según los vecinos de {distrito}. Participa tú también: {enlace}",
+		"Los resultados de la semana en {distrito} ya están disponibles. Míralos y deja tu voto: {enlace}",
+		"¿Quieres saber quién lidera en {distrito}? La encuesta se renueva cada semana: {enlace}",
+		"Votación abierta en {distrito}: responde la encuesta semanal y sigue los resultados en tiempo real: {enlace}",
+		"Cada semana medimos la intención de voto en {distrito}. Súmate y revisa los resultados: {enlace}",
+		"Datos frescos de la encuesta en {distrito}. Un clic para votar, otro para ver resultados: {enlace}"
+	]
+}

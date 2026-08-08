@@ -1,0 +1,36 @@
+{
+	"timezone": "America/Lima",
+	"windows": {
+		"morning": { "start": "07:00", "end": "10:30" },
+		"afternoon": { "start": "12:00", "end": "16:00" },
+		"evening": { "start": "18:00", "end": "22:00" }
+	},
+	"maxPerDayPerGroup": 3,
+	"maxPerDayGlobal": 30,
+	"cycleIntervalMinMinutes": 10,
+	"cycleIntervalMaxMinutes": 15,
+	"minGapBetweenPostsHours": 4,
+	"groups": [
+		{
+			"id": "andahuaylas-anuncios-avisos",
+			"name": "ANDAHUAYLAS ANUNCIOS, AVISOS (Oficial)",
+			"url": "https://www.facebook.com/groups/1435465060019344",
+			"district": "Andahuaylas",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/2"]
+		},
+		{
+			"id": "ejemplo-talavera",
+			"name": "Grupo ejemplo Talavera (reemplazar)",
+			"url": "https://www.facebook.com/groups/REEMPLAZAR_ID",
+			"district": "Talavera",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/2"]
+		},
+		{
+			"id": "ejemplo-san-jeronimo",
+			"name": "Grupo ejemplo San Jerónimo (reemplazar)",
+			"url": "https://www.facebook.com/groups/REEMPLAZAR_ID",
+			"district": "San Jerónimo",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/2"]
+		}
+	]
+}
