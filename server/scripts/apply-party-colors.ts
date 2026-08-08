@@ -1,13 +1,15 @@
 import 'dotenv/config';
-import { eq } from 'drizzle-orm';
-import { db } from '../src/db/index.js';
-import { candidates } from '../src/db/schema.js';
+import postgres from 'postgres';
 
 // ---------------------------------------------------------------------------
 // Aplica la paleta aprobada de colores de partido a los candidatos ya
 // importados. Los colores derivan del predominante de cada logo, matizados
 // para que familias repetidas (rojos, verdes, azules) se diferencien a
 // simple vista en barras y gráficos. Clave: nombre exacto guardado en la BD.
+//
+// Autocontenido (SQL directo, sin importar src/) porque también se ejecuta
+// dentro de la imagen de producción en cada deploy: el contenedor solo
+// incluye scripts/, drizzle/ y dist/.
 //
 // Uso: npm run db:colors   (tras cada importación de candidatos)
 // ---------------------------------------------------------------------------
@@ -33,17 +35,21 @@ const PARTY_COLORS: Record<string, string> = {
 	'Libertad Popular': '#eab308'
 };
 
-async function main() {
-	for (const [party, partyColor] of Object.entries(PARTY_COLORS)) {
-		const updated = await db
-			.update(candidates)
-			.set({ partyColor })
-			.where(eq(candidates.party, party))
-			.returning({ id: candidates.id });
-		console.log(`[colores] ${party}: ${partyColor} (${updated.length} candidatos)`);
-	}
-	// La conexión de postgres mantiene vivo el event loop: salir explícitamente.
-	process.exit(0);
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+	console.error('Falta DATABASE_URL');
+	process.exit(1);
 }
 
-void main();
+const sql = postgres(connectionString, { max: 1 });
+
+for (const [party, partyColor] of Object.entries(PARTY_COLORS)) {
+	const updated = await sql`
+		UPDATE candidates SET party_color = ${partyColor}
+		WHERE party = ${party}
+		RETURNING id
+	`;
+	console.log(`[colores] ${party}: ${partyColor} (${updated.length} candidatos)`);
+}
+
+await sql.end();

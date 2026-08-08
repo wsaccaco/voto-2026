@@ -50,5 +50,6 @@ ENV WEB_DIST=/app/web-dist
 ENV PORT=3000
 EXPOSE 3000
 
-# Aplica migraciones de Drizzle (Node 22.18+ ejecuta .ts nativamente) y luego arranca el servidor
-CMD ["sh", "-c", "node scripts/migrate.ts && node dist/index.js"]
+# Aplica migraciones de Drizzle (Node 22.18+ ejecuta .ts nativamente), sincroniza
+# la paleta aprobada de colores de partido y luego arranca el servidor
+CMD ["sh", "-c", "node scripts/migrate.ts && node scripts/apply-party-colors.ts && node dist/index.js"]
