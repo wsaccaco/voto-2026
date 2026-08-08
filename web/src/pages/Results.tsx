@@ -63,6 +63,8 @@ export default function Results() {
 	if (!data) return <PageLoader rows={6} />;
 
 	const leader = data.results[0];
+	// Excluir opciones especiales (Indeciso, Voto en blanco) del conteo de candidatos
+	const candidateCount = data.results.filter((r) => !r.isSpecial).length;
 	// Invitar a votar solo si la encuesta está abierta y el usuario aún no votó
 	const surveyOpen = info?.survey.status === 'abierta';
 	const inviting = Boolean(surveyOpen && !info?.myVote);
@@ -103,7 +105,7 @@ export default function Results() {
 			{/* Estadísticas */}
 			<div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
 				{data.totalVotes > VOTES_THRESHOLD && <StatCard label="Votos totales" value={String(data.totalVotes)} />}
-				<StatCard label="Candidatos" value={String(data.results.length)} />
+				<StatCard label="Candidatos" value={String(candidateCount)} />
 				<StatCard
 					label="Líder"
 					value={leader ? `${leader.percent}%` : '—'}

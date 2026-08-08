@@ -1,10 +1,12 @@
 import 'dotenv/config';
-import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { access, mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { Resvg } from '@resvg/resvg-js';
 import { db } from '../src/db/index.js';
 import { candidates } from '../src/db/schema.js';
-import { partyLogoBaseName } from '../src/lib/party-logos.js';
+import { PARTY_LOGO_WEBP_SIZE, partyLogoBaseName } from '../src/lib/party-logos.js';
 
 // ---------------------------------------------------------------------------
 // Descarga los logos de partido una sola vez a server/assets/party-logos/.
@@ -27,6 +29,32 @@ const RASTER_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
 // Los logos se muestran a 36px en las imágenes OG: 128px dan margen de sobra
 // y mantienen el peso mínimo (los JPEG originales del JNE pesan hasta 300 KB).
 const LOGO_SIZE = 128;
+
+const execFileP = promisify(execFile);
+
+/**
+ * Genera el ícono WebP cuadrado (36x36px) que usan las barras de resultados
+ * del frontend, a partir del raster ya descargado. Usa el binario `cwebp`
+ * (libwebp) con -resize: el PNG origen ya es cuadrado, así que no distorsiona.
+ */
+async function toWebpIcon(base: string): Promise<boolean> {
+	for (const ext of ['.png', '.jpg', '.jpeg']) {
+		const src = `${OUT_DIR}${base}${ext}`;
+		try {
+			await access(src);
+		} catch {
+			continue;
+		}
+		await execFileP('cwebp', [
+			'-q', '90',
+			'-resize', String(PARTY_LOGO_WEBP_SIZE), String(PARTY_LOGO_WEBP_SIZE),
+			src,
+			'-o', `${OUT_DIR}${base}.webp`
+		]);
+		return true;
+	}
+	return false;
+}
 
 /** Detecta el formato por bytes mágicos (más fiable que la extensión de la URL). */
 function sniffFormat(buf: Buffer): 'svg' | 'png' | 'jpg' | 'webp' | 'gif' | 'unknown' {
@@ -114,6 +142,18 @@ async function main() {
 		}
 	});
 	await Promise.all(workers);
+
+	// Íconos WebP cuadrados de 36px para el frontend (endpoint /api/party-logo).
+	// Se generan también si la descarga falló pero ya existía el raster local.
+	let webpOk = 0;
+	for (const item of items) {
+		try {
+			if (await toWebpIcon(partyLogoBaseName(item.key))) webpOk++;
+		} catch (err) {
+			console.warn(`[logos] webp fallo ${item.party ?? item.key}: ${err instanceof Error ? err.message : String(err)}`);
+		}
+	}
+	console.log(`[logos] webp generados: ${webpOk} (${PARTY_LOGO_WEBP_SIZE}x${PARTY_LOGO_WEBP_SIZE}px con cwebp)`);
 
 	// Limpiar archivos obsoletos (partidos que ya no están o nombres antiguos).
 	const current = new Set<string>();

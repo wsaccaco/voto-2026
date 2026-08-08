@@ -8,6 +8,7 @@ import {
 import { db } from '../db/index.js';
 import { candidates, deviceFingerprints, responses, surveys, userProfiles, users } from '../db/schema.js';
 import { getComparison, getSurveyResults, type Grouping } from '../lib/results.js';
+import { readPartyLogo } from '../lib/party-logos.js';
 import { rateLimit, sha256 } from '../lib/security.js';
 import { getSurveyWithCandidates, listCurrentWeekBallots, listOpenSurveys } from '../lib/surveys.js';
 import { countdownOf } from '../lib/weeks.js';
@@ -284,6 +285,24 @@ publicRoutes.get('/comparison', async (c) => {
 		.from(candidates)
 		.where(eq(candidates.electionId, electionId));
 	return c.json({ points, candidates: electionCandidates });
+});
+
+// ---------------------------------------------------------------------------
+// Logo de partido (ícono cuadrado para las barras de resultados)
+// ---------------------------------------------------------------------------
+// Recibe el nombre del partido (o el del candidato si es independiente) y
+// devuelve el WebP cuadrado de 36px generado por `npm run db:logos`, con
+// fallback al PNG/JPG. 404 si el partido no tiene logo: el frontend muestra
+// entonces su punto de color (partyColor).
+publicRoutes.get('/party-logo', async (c) => {
+	const key = c.req.query('p');
+	if (!key) return c.notFound();
+	const logo = await readPartyLogo(key);
+	if (!logo) return c.notFound();
+	return c.body(new Uint8Array(logo.data), 200, {
+		'Content-Type': logo.mime,
+		'Cache-Control': 'public, max-age=86400'
+	});
 });
 
 // ---------------------------------------------------------------------------

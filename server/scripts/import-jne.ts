@@ -88,31 +88,39 @@ const SOURCES: ElectionSource[] = [
 
 const YEAR = 2026;
 
-// Colores referenciales de organizaciones políticas nacionales.
-// Clave: nombre en mayúsculas sin tildes. Las organizaciones regionales
-// locales quedan sin color hasta que se definan manualmente.
+// Colores de organizaciones políticas, derivados del color predominante de su
+// logo (tonos matizados para que familias repetidas —rojos, verdes, azules—
+// se diferencien a simple vista). Clave: nombre en mayúsculas sin tildes.
+// Las organizaciones regionales locales quedan sin color hasta que se
+// definan manualmente.
 const PARTY_COLORS: Record<string, string> = {
-	'ACCION POPULAR': '#f59e0b',
+	'ACCION POPULAR': '#cc3333',
 	'FUERZA POPULAR': '#f97316',
-	'PODEMOS PERU': '#b45309',
+	'PODEMOS PERU': '#304e94',
 	'ALIANZA PARA EL PROGRESO': '#1e40af',
-	'JUNTOS POR EL PERU': '#dc2626',
+	'JUNTOS POR EL PERU': '#61bd10',
 	'PARTIDO MORADO': '#7c3aed',
-	'RENOVACION POPULAR': '#0284c7',
+	'RENOVACION POPULAR': '#0b76a0',
+	'RENOVACION POPULAR PERU': '#0b76a0',
 	'SOMOS PERU': '#dc2626',
-	'AVANZA PAIS - PARTIDO DE INTEGRACION SOCIAL': '#16a34a',
+	'AVANZA PAIS - PARTIDO DE INTEGRACION SOCIAL': '#12275e',
 	'PERU LIBRE': '#b91c1c',
 	'PARTIDO DEMOCRATICO SOMOS PERU': '#dc2626',
 	'EL FRENTE AMPLIO POR JUSTICIA VIDA Y LIBERTAD': '#15803d',
 	'UNIDAD Y PAZ': '#0d9488',
 	'PARTIDO DEL BUEN GOBIERNO': '#2563eb',
-	'AHORA NACION - AN': '#0891b2',
+	'AHORA NACION - AN': '#ef1a1a',
 	'FRENTE DE LA ESPERANZA 2021': '#65a30d',
 	'PRIMERO LA GENTE - COMUNIDAD, ECOLOGIA, LIBERTAD Y PROGRESO': '#ea580c',
 	'UNIDAD NACIONAL': '#1d4ed8',
-	'PROGRESEMOS': '#9333ea',
-	'PARTIDO DEMOCRATA UNIDO PERU': '#059669',
-	'PARTIDO POLITICO NACIONAL PERU PRIMERO': '#e11d48'
+	'PROGRESEMOS': '#29b828',
+	'PARTIDO DEMOCRATA UNIDO PERU': '#065f46',
+	'PARTIDO DEMOCRATA VERDE': '#0aa150',
+	'ALIANZA ELECTORAL VENCEREMOS': '#be1623',
+	'FRENTE POPULAR AGRICOLA FIA DEL PERU': '#3b5bdb',
+	'LIBERTAD POPULAR': '#eab308',
+	'PARTIDO POLITICO NACIONAL PERU PRIMERO': '#e11d48',
+	'PARTIDO POLITICO PERU PRIMERO': '#e11d48'
 };
 
 interface JneCandidato {

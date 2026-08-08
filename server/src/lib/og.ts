@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
 import satori, { type Font } from 'satori';
 import sharp from 'sharp';
-import { partyLogoBaseName } from './party-logos.js';
+import { PARTY_LOGO_DIR, partyLogoBaseName } from './party-logos.js';
 import { getSurveyResults, type CandidateResult } from './results.js';
 import { getSurveyWithCandidates } from './surveys.js';
 import { countdownLabel } from './weeks.js';
@@ -63,7 +62,7 @@ function getFonts() {
 // ---------------------------------------------------------------------------
 // Logos de partido (archivos locales, key = nombre del partido)
 // ---------------------------------------------------------------------------
-const LOGO_DIR = fileURLToPath(new URL('../../assets/party-logos/', import.meta.url));
+const LOGO_DIR = PARTY_LOGO_DIR;
 const logoCache = new Map<string, { data: Buffer; mime: string } | null>();
 const RASTER_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
 
