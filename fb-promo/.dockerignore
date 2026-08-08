@@ -1,0 +1,10 @@
+# Contexto de build = carpeta fb-promo/
+node_modules
+
+# Estado/logs locales: no van en la imagen (viven en el volumen del contenedor)
+.data/state.json
+.data/logs
+.data/ALERT.txt
+.data/session/profile
+
+# Nota: .data/session/storage-state.json SÍ se incluye en la imagen (seed)

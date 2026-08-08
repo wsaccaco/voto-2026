@@ -121,6 +121,33 @@ RestartSec=60
 WantedBy=multi-user.target
 ```
 
+## Deploy con Docker (Coolify)
+
+El daemon tiene su propio `fb-promo/Dockerfile` (no usa el de la web: necesita
+Chromium y no expone puertos).
+
+- **Coolify:** nueva aplicación desde el mismo repo git con
+  *Base directory* `fb-promo` y *Dockerfile location* `fb-promo/Dockerfile`.
+  Sin puerto expuesto.
+- **Volumen persistente:** montar un volumen en `/app/.data` para que
+  `state.json` (contadores de franjas) y logs sobrevivan redeploys.
+- **Sesión:** el build incluye `storage-state.json` (trackeado en git) como
+  seed; al arrancar, el CMD lo sincroniza al volumen solo si cambió. Flujo de
+  renovación: `npm run login` local → `git push` → redeploy en Coolify.
+- **Requisito:** commitear `fb-promo/.data/session/storage-state.json` antes
+  del primer build (el Dockerfile lo copia y fallaría si no existe).
+- La hora del contenedor no importa: el planificador calcula todo en
+  America/Lima vía `Intl`, independiente de la hora del servidor.
+
+Prueba local con docker:
+
+```bash
+cd fb-promo
+docker build -t fb-promo .
+docker run --rm -it -v fb-promo-data:/app/.data fb-promo npm run dry-run
+docker run -d --name fb-promo -v fb-promo-data:/app/.data fb-promo   # daemon
+```
+
 ## Comportamiento del planificador
 
 - Intenta publicar cada **10–15 min** (aleatorio), solo dentro de la franja
