@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BarChart3, Radio, Users, Vote } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoader } from '@/components/PageLoader';
@@ -9,6 +10,7 @@ import { ShareResults } from '@/components/ShareResults';
 import { StatCard } from '@/components/StatCard';
 import { VoteInvite } from '@/components/VoteInvite';
 import { api } from '@/lib/api';
+import { cleanSurveyTitle, formatDateRange } from '@/lib/elections';
 import type { SurveyDetail, SurveyResults } from '@/lib/types';
 import { VOTES_THRESHOLD } from '@/lib/utils';
 
@@ -49,6 +51,16 @@ export default function Results() {
 			});
 	}, [id]);
 
+	// Título del documento con el nombre de la encuesta (contexto al compartir)
+	useEffect(() => {
+		if (!info) return;
+		const prev = document.title;
+		document.title = `${cleanSurveyTitle(info.survey.title)} · Resultados`;
+		return () => {
+			document.title = prev;
+		};
+	}, [info]);
+
 	if (error) {
 		return (
 			<div className="mx-auto max-w-md px-4 py-16 text-center">
@@ -82,7 +94,17 @@ export default function Results() {
 				<p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 					<Radio className="h-3.5 w-3.5 text-primary" /> En vivo · se actualiza cada 10 segundos
 				</p>
-				<h1 className="mt-1 text-2xl font-bold tracking-tight">Resultados de la encuesta</h1>
+				<h1 className="mt-1 text-2xl font-bold tracking-tight">
+					{info ? cleanSurveyTitle(info.survey.title) : 'Resultados de la encuesta'}
+				</h1>
+				<p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+					{info ? formatDateRange(info.survey.startDate, info.survey.endDate) : 'Cargando encuesta…'}
+					{info && (
+						<Badge variant={info.survey.status === 'abierta' ? 'default' : 'secondary'}>
+							{info.survey.status === 'abierta' ? 'Abierta' : 'Cerrada'}
+						</Badge>
+					)}
+				</p>
 			</div>
 
 			{/* CTA permanente: participar mientras la encuesta esté abierta */}
