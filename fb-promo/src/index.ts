@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import type { AppConfig, WindowName } from './config.js';
 import { WINDOW_LABELS, WINDOW_NAMES, loadConfig, loadDeployConfig, loadTemplates } from './config.js';
@@ -68,6 +69,7 @@ async function runCycle(
 		} catch (err) {
 			if (err instanceof PostFailedError) {
 				log.warn(`Fallo al publicar en "${group.name}": ${err.message} (se omite este grupo)`);
+				skipGroupForToday(state, group.id);
 				continue;
 			}
 			throw err;
@@ -78,6 +80,16 @@ async function runCycle(
 		if (posted < groups.length) await humanDelay();
 	}
 	return posted;
+}
+
+// Marca un grupo como descartado por hoy (p. ej. sin compositor de texto
+// simple o publicación no confirmada): no se reintenta en los próximos ciclos.
+function skipGroupForToday(state: State, groupId: string): void {
+	if (!state.skippedToday.includes(groupId)) {
+		state.skippedToday.push(groupId);
+		saveState(state);
+		log.warn(`El grupo ${groupId} se omitirá por el resto del día.`);
+	}
 }
 
 async function handleFatal(err: unknown, poster: FacebookPoster): Promise<never> {
@@ -92,7 +104,12 @@ async function handleFatal(err: unknown, poster: FacebookPoster): Promise<never>
 	process.exit(1);
 }
 
-async function commandOnce(config: AppConfig, templates: string[], windowArg?: string): Promise<void> {
+async function commandOnce(
+	config: AppConfig,
+	templates: string[],
+	windowArg?: string,
+	options: { debug?: boolean; groupId?: string } = {}
+): Promise<void> {
 	const state = refreshState(config);
 	const now = new Date();
 	let windowName: WindowName | undefined = activeWindow(config, now)?.name;
@@ -106,12 +123,49 @@ async function commandOnce(config: AppConfig, templates: string[], windowArg?: s
 		log.warn(`Fuera de franja (${localNowLabel(config)}). Usa "--window morning|afternoon|evening" para forzar la prueba, o "npm run dry-run" para ver el plan.`);
 		process.exit(2);
 	}
-	const poster = new FacebookPoster(true);
+
+	let groups;
+	if (options.groupId) {
+		const group = config.groups.find((g) => g.id === options.groupId || g.url.includes(options.groupId!));
+		if (!group) throw new Error(`No se encontró el grupo "${options.groupId}" en config/groups.json`);
+		groups = [group];
+	} else {
+		groups = pickGroupsForCycle(config, state, windowName, now);
+	}
+	if (groups.length === 0) {
+		log.warn('Sin grupos elegibles en esta franja (todos ya publicaron hoy o están en cooldown).');
+		process.exit(2);
+	}
+
+	const poster = new FacebookPoster({
+		headless: !options.debug,
+		slowMoMs: options.debug ? 200 : 0,
+		debug: options.debug
+	});
 	try {
 		await poster.start();
 		await poster.verifySession();
-		const posted = await runCycle(config, templates, state, windowName, poster);
-		log.info(`Ciclo terminado: ${posted} publicación(es).`);
+		for (const group of groups) {
+			const { text, templateIndex } = generatePost(group, templates, state.recentTemplates[group.id] ?? []);
+			log.info(`[${WINDOW_LABELS[windowName]}] Publicando en "${group.name}": ${text}`);
+			try {
+				await poster.postToGroup(group, text);
+			} catch (err) {
+				if (err instanceof PostFailedError) {
+					log.warn(`Fallo al publicar en "${group.name}": ${err.message}`);
+					skipGroupForToday(state, group.id);
+					continue;
+				}
+				throw err;
+			}
+			recordPost(state, group.id, windowName, templateIndex, new Date());
+			saveState(state);
+		}
+		if (options.debug) {
+			// Mantiene el navegador visible para inspeccionar el resultado.
+			await waitForEnter('Modo debug: revisa el navegador. Presiona ENTER para cerrar...');
+		}
+		log.info('Ciclo terminado.');
 	} catch (err) {
 		await handleFatal(err, poster);
 	} finally {
@@ -119,12 +173,22 @@ async function commandOnce(config: AppConfig, templates: string[], windowArg?: s
 	}
 }
 
+function waitForEnter(prompt: string): Promise<void> {
+	return new Promise((resolve) => {
+		const rl = createInterface({ input: process.stdin, output: process.stdout });
+		rl.question(prompt, () => {
+			rl.close();
+			resolve();
+		});
+	});
+}
+
 async function commandRun(config: AppConfig, templates: string[]): Promise<void> {
 	log.info(`Daemon iniciado (${localNowLabel(config)} hora ${config.timezone}). Grupos: ${config.groups.length}.`);
 	let state = refreshState(config);
 	saveState(state);
 
-	const poster = new FacebookPoster(true);
+	const poster = new FacebookPoster();
 	try {
 		await poster.start();
 		await poster.verifySession();
@@ -218,7 +282,9 @@ function printUsage(): void {
   once             Publica 1 ciclo y termina (dentro de una franja activa)
   start            Daemon 24/7 headless
 Flags: --max-per-day N  publicaciones/día por grupo (1-3, default 3)
-       --window W       solo "once": fuerza la franja (morning|afternoon|evening)`);
+       --window W       solo "once": fuerza la franja (morning|afternoon|evening)
+       --group ID       solo "once": publica solo en ese grupo (id o texto de la URL)
+       --debug          solo "once": navegador visible, lento y con capturas por paso`);
 }
 
 async function main(): Promise<void> {
@@ -226,7 +292,9 @@ async function main(): Promise<void> {
 		allowPositionals: true,
 		options: {
 			'max-per-day': { type: 'string' },
-			window: { type: 'string' }
+			window: { type: 'string' },
+			group: { type: 'string' },
+			debug: { type: 'boolean' }
 		}
 	});
 	const command = positionals[0];
@@ -254,7 +322,7 @@ async function main(): Promise<void> {
 	const templates = loadTemplates();
 
 	if (command === 'dry-run') commandDryRun(config, templates);
-	else if (command === 'once') await commandOnce(config, templates, values.window);
+	else if (command === 'once') await commandOnce(config, templates, values.window, { debug: values.debug, groupId: values.group });
 	else await commandRun(config, templates);
 }
 

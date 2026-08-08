@@ -20,12 +20,30 @@ export interface TimeWindow {
 	end: string;
 }
 
+export interface LinkEntry {
+	url: string;
+	// distrito que se usa en el copy cuando se elige este enlace
+	// (p. ej. el enlace regional usa "Apurímac"); si falta, usa el del grupo
+	district?: string;
+}
+
 export interface GroupConfig {
 	id: string;
 	name: string;
 	url: string;
 	district: string;
-	links: string[];
+	links: LinkEntry[];
+}
+
+// En el JSON los enlaces pueden ser strings simples o objetos { url, district }
+interface RawGroup {
+	id: string;
+	name: string;
+	url: string;
+	district: string;
+	links: (string | LinkEntry)[];
+	// false => no se usa (p. ej. grupos de compraventa con flujo "Vender algo")
+	enabled?: boolean;
 }
 
 export interface AppConfig {
@@ -87,7 +105,12 @@ export function loadConfig(): AppConfig {
 		cycleIntervalMinMinutes: raw.cycleIntervalMinMinutes ?? 10,
 		cycleIntervalMaxMinutes: raw.cycleIntervalMaxMinutes ?? 15,
 		minGapBetweenPostsHours: raw.minGapBetweenPostsHours ?? 4,
-		groups: raw.groups
+		groups: (raw.groups as RawGroup[])
+			.filter((group) => group.enabled !== false)
+			.map((group) => ({
+				...group,
+				links: group.links.map((link) => (typeof link === 'string' ? { url: link } : link))
+			}))
 	};
 
 	for (const name of WINDOW_NAMES) {
@@ -106,6 +129,12 @@ export function loadConfig(): AppConfig {
 		}
 		if (!Array.isArray(group.links) || group.links.length === 0) {
 			throw new Error(`El grupo "${group.id}" debe tener al menos un enlace en "links"`);
+		}
+		for (const link of group.links) {
+			const url = typeof link === 'string' ? link : link.url;
+			if (!url || !url.startsWith('https://')) {
+				throw new Error(`Enlace inválido en el grupo "${group.id}": ${url}`);
+			}
 		}
 		if (ids.has(group.id)) {
 			throw new Error(`Id de grupo duplicado: "${group.id}"`);

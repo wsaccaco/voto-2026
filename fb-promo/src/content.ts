@@ -10,7 +10,9 @@ export interface GeneratedPost {
 }
 
 export function generatePost(group: GroupConfig, templates: string[], recentTemplateIndices: number[]): GeneratedPost {
-	const link = group.links[Math.floor(Math.random() * group.links.length)] ?? group.links[0]!;
+	const entry = group.links[Math.floor(Math.random() * group.links.length)] ?? group.links[0]!;
+	// El distrito del copy sigue al enlace elegido (p. ej. enlace regional => Apurímac)
+	const district = entry.district ?? group.district;
 
 	// Evita repetir las últimas plantillas usadas en este grupo.
 	const unused = templates
@@ -20,8 +22,8 @@ export function generatePost(group: GroupConfig, templates: string[], recentTemp
 	const templateIndex = pool[Math.floor(Math.random() * pool.length)]!;
 
 	const text = templates[templateIndex]!
-		.split('{distrito}').join(group.district)
-		.split('{enlace}').join(link);
+		.split('{distrito}').join(district)
+		.split('{enlace}').join(entry.url);
 
-	return { text, templateIndex, link };
+	return { text, templateIndex, link: entry.url };
 }

@@ -6,7 +6,7 @@
 		"evening": { "start": "18:00", "end": "22:00" }
 	},
 	"maxPerDayPerGroup": 3,
-	"maxPerDayGlobal": 30,
+	"maxPerDayGlobal": 70,
 	"cycleIntervalMinMinutes": 10,
 	"cycleIntervalMaxMinutes": 15,
 	"minGapBetweenPostsHours": 4,
@@ -16,21 +16,193 @@
 			"name": "ANDAHUAYLAS ANUNCIOS, AVISOS (Oficial)",
 			"url": "https://www.facebook.com/groups/1435465060019344",
 			"district": "Andahuaylas",
-			"links": ["https://voto.pukllayandahuaylas.pe/resultados/2"]
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/2", "district": "Andahuaylas" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/22", "district": "Talavera" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
 		},
 		{
-			"id": "ejemplo-talavera",
-			"name": "Grupo ejemplo Talavera (reemplazar)",
-			"url": "https://www.facebook.com/groups/REEMPLAZAR_ID",
-			"district": "Talavera",
-			"links": ["https://voto.pukllayandahuaylas.pe/resultados/2"]
+			"id": "andahuaylas-1978572585610749",
+			"name": "Grupo Andahuaylas 1978572585610749",
+			"url": "https://www.facebook.com/groups/1978572585610749",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
 		},
 		{
-			"id": "ejemplo-san-jeronimo",
-			"name": "Grupo ejemplo San Jerónimo (reemplazar)",
-			"url": "https://www.facebook.com/groups/REEMPLAZAR_ID",
-			"district": "San Jerónimo",
-			"links": ["https://voto.pukllayandahuaylas.pe/resultados/2"]
+			"id": "andahuaylas-1611009055855394",
+			"name": "Grupo Andahuaylas 1611009055855394",
+			"url": "https://www.facebook.com/groups/1611009055855394",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-127816374531214",
+			"name": "Grupo Andahuaylas 127816374531214",
+			"url": "https://www.facebook.com/groups/127816374531214",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-2423872820963274",
+			"name": "Grupo Andahuaylas 2423872820963274",
+			"url": "https://www.facebook.com/groups/2423872820963274",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-170330300050357",
+			"name": "Grupo Andahuaylas 170330300050357",
+			"url": "https://www.facebook.com/groups/170330300050357",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-755076228847207",
+			"name": "Grupo Andahuaylas 755076228847207",
+			"url": "https://www.facebook.com/groups/755076228847207",
+			"district": "Apurímac",
+			"enabled": false,
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "terrenos-en-peru",
+			"name": "Terrenos en Perú",
+			"url": "https://www.facebook.com/groups/terrenosenperu",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-1007949249789563",
+			"name": "Grupo Andahuaylas 1007949249789563",
+			"url": "https://www.facebook.com/groups/1007949249789563",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-2307470379603134",
+			"name": "Grupo Andahuaylas 2307470379603134",
+			"url": "https://www.facebook.com/groups/2307470379603134",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "andahuaylas-1173441256441658",
+			"name": "Grupo Andahuaylas 1173441256441658",
+			"url": "https://www.facebook.com/groups/1173441256441658",
+			"district": "Apurímac",
+			"links": ["https://voto.pukllayandahuaylas.pe/resultados/1"]
+		},
+		{
+			"id": "abancay-1759779567531357",
+			"name": "Grupo Abancay 1759779567531357",
+			"url": "https://www.facebook.com/groups/1759779567531357",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "anuncios-abancay",
+			"name": "Anuncios Abancay",
+			"url": "https://www.facebook.com/groups/anunciosabancay",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-846482665489059",
+			"name": "Grupo Abancay 846482665489059",
+			"url": "https://www.facebook.com/groups/846482665489059",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "huaynos-peru",
+			"name": "Huaynos Perú",
+			"url": "https://www.facebook.com/groups/huaynosperu",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "mercado-libre-apurimac",
+			"name": "Mercado Libre Apurímac",
+			"url": "https://www.facebook.com/groups/mercadolibreapurimac",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-1199345267148627",
+			"name": "Grupo Abancay 1199345267148627",
+			"url": "https://www.facebook.com/groups/1199345267148627",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-1079999838800410",
+			"name": "Grupo Abancay 1079999838800410",
+			"url": "https://www.facebook.com/groups/1079999838800410",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-636480730852257",
+			"name": "Grupo Abancay 636480730852257",
+			"url": "https://www.facebook.com/groups/636480730852257",
+			"district": "Abancay",
+			"enabled": false,
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-539434053461428",
+			"name": "Grupo Abancay 539434053461428",
+			"url": "https://www.facebook.com/groups/539434053461428",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-807572329355320",
+			"name": "Grupo Abancay 807572329355320",
+			"url": "https://www.facebook.com/groups/807572329355320",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
+		},
+		{
+			"id": "abancay-2324682247788101",
+			"name": "Grupo Abancay 2324682247788101",
+			"url": "https://www.facebook.com/groups/2324682247788101",
+			"district": "Abancay",
+			"links": [
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
+				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }
+			]
 		}
 	]
 }

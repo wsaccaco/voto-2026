@@ -12,6 +12,7 @@
 		"deploy-session": "tsx src/index.ts deploy-session",
 		"dry-run": "tsx src/index.ts dry-run",
 		"once": "tsx src/index.ts once",
+		"debug": "tsx src/index.ts once --debug",
 		"start": "tsx src/index.ts run",
 		"typecheck": "tsc --noEmit"
 	},

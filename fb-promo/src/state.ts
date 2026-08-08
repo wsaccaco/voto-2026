@@ -18,6 +18,8 @@ export interface State {
 	lastPostedAt: Record<string, string>;
 	// groupId -> índices de las últimas plantillas usadas (rotación de copys)
 	recentTemplates: Record<string, number[]>;
+	// grupos descartados hoy (p. ej. sin compositor de texto simple)
+	skippedToday: string[];
 	// último grupo publicado (evitar consecutivos dentro de un ciclo)
 	lastGroupId?: string;
 }
@@ -28,7 +30,8 @@ export function emptyState(date: string): State {
 		todayGlobalPosts: 0,
 		postsByWindow: {},
 		lastPostedAt: {},
-		recentTemplates: {}
+		recentTemplates: {},
+		skippedToday: []
 	};
 }
 
@@ -37,6 +40,8 @@ export function loadState(): State | null {
 	try {
 		const state = JSON.parse(readFileSync(stateFile, 'utf8')) as State;
 		if (!state.date || typeof state.todayGlobalPosts !== 'number') return null;
+		// Campo agregado después de los primeros estados persistidos
+		state.skippedToday ??= [];
 		return state;
 	} catch {
 		return null;

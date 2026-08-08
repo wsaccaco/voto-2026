@@ -98,11 +98,13 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 // Grupos que pueden recibir publicación en la franja actual:
+// - no están descartados hoy (p. ej. sin compositor de texto simple)
 // - no publicaron todavía en esta franja (máx. 1 por franja => 3/día)
 // - respetan el gap mínimo desde su último post
 export function eligibleGroups(config: AppConfig, state: State, windowName: WindowName, now: Date): GroupConfig[] {
 	const gapMs = config.minGapBetweenPostsHours * 3_600_000;
 	return config.groups.filter((group) => {
+		if (state.skippedToday.includes(group.id)) return false;
 		if (state.postsByWindow[group.id]?.[windowName]) return false;
 		const last = state.lastPostedAt[group.id];
 		if (last && now.getTime() - Date.parse(last) < gapMs) return false;

@@ -14,6 +14,22 @@
 		"¿Quieres saber quién lidera en {distrito}? La encuesta se renueva cada semana: {enlace}",
 		"Votación abierta en {distrito}: responde la encuesta semanal y sigue los resultados en tiempo real: {enlace}",
 		"Cada semana medimos la intención de voto en {distrito}. Súmate y revisa los resultados: {enlace}",
-		"Datos frescos de la encuesta en {distrito}. Un clic para votar, otro para ver resultados: {enlace}"
+		"Datos frescos de la encuesta en {distrito}. Un clic para votar, otro para ver resultados: {enlace}",
+		"¡Atención vecinos de {distrito}! La encuesta electoral de la semana ya está en marcha. Vota aquí: {enlace}",
+		"¿Ya participaste en la encuesta de {distrito}? Toma menos de un minuto: {enlace}",
+		"Los vecinos de {distrito} ya están votando esta semana. ¿Y tú? {enlace}",
+		"Descubre cómo piensa {distrito}: resultados en vivo de la encuesta electoral: {enlace}",
+		"Encuesta semanal abierta para {distrito}. Tu voto ayuda a medir la intención real: {enlace}",
+		"Mira quién lidera esta semana en {distrito}. Resultados actualizados: {enlace}",
+		"Participa en la encuesta ciudadana de {distrito} y comparte los resultados con tus vecinos: {enlace}",
+		"¿Cambió tu preferencia de voto? Actualízala en la encuesta de {distrito}: {enlace}",
+		"Cada semana, {distrito} mide su intención de voto. Súmate al conteo: {enlace}",
+		"Resultados al instante: así va la encuesta electoral en {distrito}. Participa: {enlace}",
+		"Invita a tus vecinos de {distrito} a votar y comparen los resultados juntos: {enlace}",
+		"La voz de {distrito} cuenta: responde la encuesta de esta semana: {enlace}",
+		"¿Quién va ganando en {distrito}? Entra, vota y compruébalo tú mismo: {enlace}",
+		"Los resultados de {distrito} se actualizan con cada voto. Deja el tuyo: {enlace}",
+		"Pulso electoral de {distrito}: mira los resultados de la semana y participa: {enlace}",
+		"Vota en la encuesta de {distrito} y descubre si tu candidato va primero: {enlace}"
 	]
 }
