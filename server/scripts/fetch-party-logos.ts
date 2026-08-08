@@ -24,6 +24,9 @@ const OUT_DIR = fileURLToPath(new URL('../assets/party-logos/', import.meta.url)
 const TIMEOUT_MS = 15_000;
 const CONCURRENCY = 6;
 const RASTER_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+// Los logos se muestran a 36px en las imágenes OG: 128px dan margen de sobra
+// y mantienen el peso mínimo (los JPEG originales del JNE pesan hasta 300 KB).
+const LOGO_SIZE = 128;
 
 /** Detecta el formato por bytes mágicos (más fiable que la extensión de la URL). */
 function sniffFormat(buf: Buffer): 'svg' | 'png' | 'jpg' | 'webp' | 'gif' | 'unknown' {
@@ -35,6 +38,14 @@ function sniffFormat(buf: Buffer): 'svg' | 'png' | 'jpg' | 'webp' | 'gif' | 'unk
 	if (buf.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif';
 	if (buf.subarray(0, 256).toString('utf8').match(/^\s*(?:<\?xml[\s\S]*?\?>)?\s*<svg[\s>]/i)) return 'svg';
 	return 'unknown';
+}
+
+/** Recodifica cualquier imagen (SVG/PNG/JPEG/WebP/GIF) a PNG cuadrado del ancho pedido. */
+function toPng(buf: Buffer, width: number): Buffer {
+	const mime = sniffFormat(buf);
+	if (mime === 'unknown') throw new Error('formato no reconocido');
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${width}"><image href="data:image/${mime === 'svg' ? 'svg+xml' : mime === 'jpg' ? 'jpeg' : mime};base64,${buf.toString('base64')}" width="${width}" height="${width}"/></svg>`;
+	return new Resvg(Buffer.from(svg), { fitTo: { mode: 'width', value: width } }).render().asPng();
 }
 
 async function main() {
@@ -82,22 +93,13 @@ async function main() {
 			const res = await fetch(item.url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const buf = Buffer.from(await res.arrayBuffer());
-			const format = sniffFormat(buf);
-
-			let fileName: string;
-			if (format === 'svg') {
-				// resvg no soporta SVG embebido como <image> dentro de SVG: se rasteriza a PNG.
-				const png = new Resvg(buf, { fitTo: { mode: 'width', value: 256 } }).render().asPng();
-				fileName = `${base}.png`;
-				await writeFile(`${OUT_DIR}${fileName}`, png);
-			} else if (format === 'png' || format === 'jpg' || format === 'webp' || format === 'gif') {
-				fileName = `${base}.${format === 'jpg' ? 'jpg' : format}`;
-				await writeFile(`${OUT_DIR}${fileName}`, buf);
-			} else {
-				throw new Error(`formato no reconocido (${buf.length} bytes)`);
-			}
+			// Siempre PNG optimizado: los blobs del JNE vienen en formatos y tamaños
+			// dispares (SVG, JPEG de cientos de KB) y resvg los rasteriza igual.
+			const png = toPng(buf, LOGO_SIZE);
+			const fileName = `${base}.png`;
+			await writeFile(`${OUT_DIR}${fileName}`, png);
 			ok++;
-			console.log(`[logos] ok ${item.party ?? item.key} (${format}, ${fileName})`);
+			console.log(`[logos] ok ${item.party ?? item.key} (${sniffFormat(buf)}, ${fileName})`);
 		} catch (err) {
 			failed++;
 			console.warn(`[logos] fallo ${item.party ?? item.key}: ${err instanceof Error ? err.message : String(err)}`);

@@ -12,17 +12,18 @@ import { getSurveyWithCandidates } from '../lib/surveys.js';
 
 export const ogRoutes = new Hono();
 
-// GET /og/resultados/:id.png — imagen PNG 1200x630 con los resultados actuales
+// GET /og/resultados/:id.webp — imagen WebP 1200x630 con los resultados actuales
+// (acepta también .png para no romper links ya compartidos)
 ogRoutes.get('/resultados/:file', async (c) => {
-	const match = /^(\d+)\.png$/.exec(c.req.param('file') ?? '');
+	const match = /^(\d+)\.(?:png|webp)$/.exec(c.req.param('file') ?? '');
 	if (!match) return c.json({ error: 'Archivo inválido' }, 400);
 
-	const png = await renderSurveyOgImage(Number(match[1]));
-	if (!png) return c.json({ error: 'Encuesta no encontrada' }, 404);
+	const image = await renderSurveyOgImage(Number(match[1]));
+	if (!image) return c.json({ error: 'Encuesta no encontrada' }, 404);
 
-	return new Response(png as unknown as BodyInit, {
+	return new Response(image as unknown as BodyInit, {
 		headers: {
-			'Content-Type': 'image/png',
+			'Content-Type': 'image/webp',
 			'Cache-Control': 'public, max-age=60, s-maxage=300'
 		}
 	});
@@ -87,7 +88,7 @@ export const resultadosHtmlHandler: MiddlewareHandler = async (c, next) => {
 	const title = `Resultados · ${survey.electionName} · Semana ${survey.weekNumber} | Andahuaylas Vota`;
 	const url = `${env.publicUrl}/resultados/${id}`;
 	// ?v= por semana: invalida la caché del crawler (WhatsApp/Facebook) sin perder frescura intra-semana
-	const image = `${env.publicUrl}/og/resultados/${id}.png?v=${survey.weekNumber}`;
+	const image = `${env.publicUrl}/og/resultados/${id}.webp?v=${survey.weekNumber}`;
 
 	const html = template
 		.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)

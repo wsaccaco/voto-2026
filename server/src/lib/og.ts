@@ -4,13 +4,15 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
 import satori, { type Font } from 'satori';
+import sharp from 'sharp';
 import { partyLogoBaseName } from './party-logos.js';
 import { getSurveyResults, type CandidateResult } from './results.js';
 import { getSurveyWithCandidates } from './surveys.js';
 
 // ---------------------------------------------------------------------------
 // Generación de imágenes Open Graph (1200x630) para páginas de resultados.
-// Pipeline: satori (layout + texto a SVG) → resvg (SVG a PNG).
+// Pipeline: satori (layout + texto a SVG) → resvg (SVG a PNG) → sharp (a WebP,
+// ~2x más liviano que PNG y soportado por los crawlers de WhatsApp/Facebook).
 // Las fuentes se leen de @fontsource (WOFF estáticos) y los logos de partido
 // de server/assets/party-logos/ (descargados con `npm run db:logos`), de modo
 // que el render no depende de ninguna llamada de red.
@@ -115,14 +117,14 @@ function initialsOf(name: string): string {
 const fmtVotes = new Intl.NumberFormat('es-PE');
 
 // ---------------------------------------------------------------------------
-// Render de la imagen de una encuesta
+// Render de la imagen de una encuesta (WebP)
 // ---------------------------------------------------------------------------
-const pngCache = new Map<number, { at: number; png: Buffer }>();
-const PNG_TTL_MS = 60_000;
+const imageCache = new Map<number, { at: number; image: Buffer }>();
+const CACHE_TTL_MS = 60_000;
 
 export async function renderSurveyOgImage(surveyId: number): Promise<Buffer | null> {
-	const hit = pngCache.get(surveyId);
-	if (hit && Date.now() - hit.at < PNG_TTL_MS) return hit.png;
+	const hit = imageCache.get(surveyId);
+	if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.image;
 
 	const [results, detail] = await Promise.all([getSurveyResults(surveyId), getSurveyWithCandidates(surveyId)]);
 	if (!results || !detail) return null;
@@ -144,9 +146,11 @@ export async function renderSurveyOgImage(surveyId: number): Promise<Buffer | nu
 		fonts: getFonts()
 	});
 	const png = new Resvg(svg, { background: BG }).render().asPng();
+	// WebP con calidad alta: conserva el texto nítido y pesa ~2x menos que el PNG.
+	const image = await sharp(png).webp({ quality: 88 }).toBuffer();
 
-	pngCache.set(surveyId, { at: Date.now(), png });
-	return png;
+	imageCache.set(surveyId, { at: Date.now(), image });
+	return image;
 }
 
 type SurveyDetail = NonNullable<Awaited<ReturnType<typeof getSurveyWithCandidates>>>;
