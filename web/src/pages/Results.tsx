@@ -12,7 +12,7 @@ import { VoteInvite } from '@/components/VoteInvite';
 import { api } from '@/lib/api';
 import { cleanSurveyTitle, formatDateRange } from '@/lib/elections';
 import type { SurveyDetail, SurveyResults } from '@/lib/types';
-import { VOTES_THRESHOLD } from '@/lib/utils';
+import { cn, VOTES_THRESHOLD } from '@/lib/utils';
 
 export default function Results() {
 	const { id } = useParams();
@@ -107,18 +107,38 @@ export default function Results() {
 				</p>
 			</div>
 
-			{/* CTA permanente: participar mientras la encuesta esté abierta */}
-			{inviting && (
-				<div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
+			{/* CTA permanente: cómo participar, visible siempre que haya datos de la encuesta */}
+			{info && (
+				<div
+					className={cn(
+						'mb-6 flex flex-col items-start justify-between gap-3 rounded-xl border p-4 sm:flex-row sm:items-center',
+						surveyOpen && !info.myVote ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/40'
+					)}
+				>
 					<div>
-						<p className="text-sm font-semibold">Esta encuesta está abierta</p>
+						<p className="text-sm font-semibold">
+							{surveyOpen
+								? info.myVote
+									? 'Ya votaste en esta encuesta'
+									: 'Esta encuesta está abierta'
+								: 'Esta encuesta está cerrada'}
+						</p>
 						<p className="text-sm text-muted-foreground">
-							Tu opinión cuenta: vota y mira cómo cambian los resultados.
+							{surveyOpen
+								? info.myVote
+									? 'Puedes votar en las otras encuestas de la semana.'
+									: 'Tu opinión cuenta: vota y mira cómo cambian los resultados.'
+								: 'Participa en las encuestas abiertas de esta semana.'}
 						</p>
 					</div>
-					<Button asChild className="shrink-0">
+					<Button
+						asChild
+						className="shrink-0"
+						variant={surveyOpen && !info.myVote ? 'default' : 'outline'}
+					>
 						<Link to="/votar">
-							<Vote className="mr-2 h-4 w-4" /> Participar ahora
+							<Vote className="mr-2 h-4 w-4" />
+							{surveyOpen ? (info.myVote ? 'Votar en otras encuestas' : 'Votar ahora') : 'Votar esta semana'}
 						</Link>
 					</Button>
 				</div>
@@ -141,9 +161,23 @@ export default function Results() {
 					<CardTitle className="text-base">Preferencia de voto</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-5">
-					{data.results.map((r) => (
-						<ResultBar key={r.candidateId} result={r} showVotes={data.totalVotes > VOTES_THRESHOLD} />
-					))}
+					{/* Candidatos clicables: el clic expresa intención de votar y lleva a /votar
+					    (sin pre-selección: el votante puede vivir en otro distrito). Solo cuando
+					    la encuesta está abierta; las opciones especiales no son clicables. */}
+					{data.results.map((r) =>
+						surveyOpen && !r.isSpecial ? (
+							<Link
+								key={r.candidateId}
+								to="/votar"
+								aria-label={`Ir a votar por ${r.name}`}
+								className="-mx-2 block rounded-lg px-2 py-1 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								<ResultBar result={r} showVotes={data.totalVotes > VOTES_THRESHOLD} />
+							</Link>
+						) : (
+							<ResultBar key={r.candidateId} result={r} showVotes={data.totalVotes > VOTES_THRESHOLD} />
+						)
+					)}
 					{data.totalVotes === 0 && (
 						<p className="py-6 text-center text-sm text-muted-foreground">
 							Aún no hay votos en esta encuesta. ¡Sé el primero en votar!

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, TrendingUp } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Vote } from 'lucide-react';
 import {
 	CartesianGrid,
 	Legend,
@@ -250,6 +250,14 @@ export default function Comparison() {
 					</Card>
 				</>
 			)}
+
+			<div className="mt-8 text-center">
+				<Button asChild>
+					<Link to="/votar">
+						<Vote className="mr-2 h-4 w-4" /> Votar esta semana
+					</Link>
+				</Button>
+			</div>
 		</div>
 	);
 }

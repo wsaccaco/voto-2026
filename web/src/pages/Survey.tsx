@@ -178,9 +178,7 @@ export default function Survey() {
 					{formatDateRange(survey.startDate, survey.endDate)}
 				</p>
 				<h1 className="mt-1 text-2xl font-bold tracking-tight">{cleanSurveyTitle(survey.title)}</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Elige una sola opción. Tu voto es anónimo y solo puedes votar una vez por semana.
-				</p>
+				<p className="mt-1 text-sm text-muted-foreground">Elige una opción.</p>
 			</div>
 
 			{closed ? (

@@ -33,17 +33,17 @@ export function CandidateCard({ candidate, selected, disabled, onSelect }: Props
 			)}
 			style={selected ? { borderColor: color } : undefined}
 		>
-			{/* Avatar o foto */}
+			{/* Foto cuadrada con esquinas ligeras: el recorte circular pierde el rostro */}
 			{candidate.photoUrl ? (
 				<img
 					src={candidate.photoUrl}
 					alt={candidate.name}
-					className="h-12 w-12 shrink-0 rounded-full object-cover"
+					className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover"
 					loading="lazy"
 				/>
 			) : (
 				<span
-					className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+					className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
 					style={{ backgroundColor: color }}
 				>
 					{initials}
@@ -58,7 +58,7 @@ export function CandidateCard({ candidate, selected, disabled, onSelect }: Props
 							<img
 								src={candidate.partyLogoUrl}
 								alt={candidate.party}
-								className="h-4 w-4 shrink-0 rounded-sm object-contain"
+								className="h-5 w-5 shrink-0 rounded-md border border-border object-contain"
 								loading="lazy"
 							/>
 						)}

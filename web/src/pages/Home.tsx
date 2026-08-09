@@ -108,10 +108,8 @@ export default function Home() {
 					¿A quién elegirías hoy en {REGION_NAME}?
 				</h1>
 				<p className="mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-					Cada semana abrimos nuevas encuestas para conocer la preferencia electoral en la región.
-					Cuéntanos dónde vives y recibirás tus encuestas: gobierno regional, alcaldía provincial y,
-					si tu distrito no es capital provincial, alcaldía distrital. Tu voto es anónimo y puedes
-					actualizarlo cada semana.
+					Cada semana abrimos una nueva encuesta sobre la preferencia electoral en {REGION_NAME}.
+					Vota en menos de un minuto.
 				</p>
 				<Link to="/resultados">
 					<Button variant="secondary" className="mt-6">
@@ -126,8 +124,7 @@ export default function Home() {
 					<div className="mb-4">
 						<h2 className="text-xl font-bold tracking-tight">¿Dónde vives?</h2>
 						<p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-							Todos los electores de {REGION_NAME} votan por el Gobierno Regional. Según tu
-							provincia y distrito también recibirás la encuesta de tu alcaldía provincial y distrital.
+							Indícanos tu provincia y distrito para mostrarte tus cédulas de voto.
 						</p>
 					</div>
 					<LocationPicker onPick={choose} />

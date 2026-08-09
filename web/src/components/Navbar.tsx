@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BarChart3, Landmark, LogOut, Menu, Moon, ShieldCheck, Sun, User, X } from 'lucide-react';
+import { BarChart3, Landmark, LogOut, Menu, Moon, ShieldCheck, Sun, User, Vote, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +12,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { signInWithGoogle, signOut } from '@/lib/api';
+import { SignInButton } from '@/components/SignInButton';
+import { signOut } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
@@ -96,6 +97,13 @@ export function Navbar() {
 								<ShieldCheck className="h-4 w-4" /> Admin
 							</NavLink>
 						)}
+						{/* Acción primaria: votar siempre accesible */}
+						<NavLink
+							to="/votar"
+							className="flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+						>
+							<Vote className="h-4 w-4" /> Votar
+						</NavLink>
 					</nav>
 				</div>
 
@@ -142,9 +150,9 @@ export function Navbar() {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : (
-						<Button size="sm" onClick={() => signInWithGoogle()}>
+						<SignInButton size="sm" returnTo="/votar">
 							Ingresar
-						</Button>
+						</SignInButton>
 					)}
 
 					<Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)} aria-label="Menú">
@@ -180,6 +188,13 @@ export function Navbar() {
 							<BarChart3 className="mr-1 inline h-4 w-4" /> Panel admin
 						</NavLink>
 					)}
+					<NavLink
+						to="/votar"
+						onClick={() => setOpen(false)}
+						className="mt-1 block rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+					>
+						<Vote className="mr-1 inline h-4 w-4" /> Votar
+					</NavLink>
 				</nav>
 			)}
 		</header>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, MapPin, Vote } from 'lucide-react';
 import { LocationPicker } from '@/components/LocationPicker';
+import { SignInButton } from '@/components/SignInButton';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -11,7 +12,6 @@ import {
 	DialogHeader,
 	DialogTitle
 } from '@/components/ui/dialog';
-import { signInWithGoogle } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import {
 	clearVotingLocation,
@@ -47,9 +47,16 @@ export function VoteInvite({ surveys, hasVoted, weekKey }: VoteInviteProps) {
 
 	const relevant = surveys.length > 0 && !hasVoted;
 
-	// Apertura automática: una sola vez por semana electoral (salvo descarte)
+	// Apertura automática: una sola vez por semana electoral (salvo descarte).
+	// En el primer contacto sin ubicación registrada se abre de inmediato, sin
+	// esperar ni depender de descartes previos.
 	useEffect(() => {
 		if (!relevant || !weekKey) return;
+		const firstContact = !getVotingLocation();
+		if (firstContact) {
+			setOpen(true);
+			return;
+		}
 		try {
 			if (localStorage.getItem(DISMISS_KEY) === weekKey) return;
 		} catch {
@@ -92,8 +99,7 @@ export function VoteInvite({ surveys, hasVoted, weekKey }: VoteInviteProps) {
 				<DialogHeader>
 					<DialogTitle>¿Ya votaste esta semana?</DialogTitle>
 					<DialogDescription>
-						Los resultados que ves se construyen con la participación de la región. Tu
-						voto es anónimo y solo puedes votar una vez por semana.
+						Los resultados se construyen con tu participación. Un voto por persona por semana.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -129,9 +135,7 @@ export function VoteInvite({ surveys, hasVoted, weekKey }: VoteInviteProps) {
 							</Link>
 						</Button>
 					) : (
-						<Button className="w-full" disabled={needsLocation} onClick={() => signInWithGoogle('/votar')}>
-							Continuar con Google
-						</Button>
+						<SignInButton className="w-full" disabled={needsLocation} returnTo="/votar" />
 					)}
 					<Button variant="ghost" className="w-full" onClick={dismiss}>
 						Ahora no

@@ -1,7 +1,6 @@
 import { Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { signInWithGoogle } from '@/lib/api';
+import { SignInButton } from '@/components/SignInButton';
 
 export function LoginPrompt({ title = 'Inicia sesión para continuar' }: { title?: string }) {
 	return (
@@ -15,9 +14,7 @@ export function LoginPrompt({ title = 'Inicia sesión para continuar' }: { title
 					<p className="text-sm text-muted-foreground">
 						Necesitamos tu cuenta de Google para garantizar un solo voto por persona cada semana.
 					</p>
-					<Button className="mt-2" onClick={() => signInWithGoogle()}>
-						Continuar con Google
-					</Button>
+					<SignInButton className="mt-2" />
 				</CardContent>
 			</Card>
 		</div>

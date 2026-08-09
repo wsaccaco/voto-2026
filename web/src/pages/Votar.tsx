@@ -16,7 +16,8 @@ import {
 import { CandidateCard } from '@/components/CandidateCard';
 import { PageLoader } from '@/components/PageLoader';
 import { ProfileForm } from '@/components/ProfileForm';
-import { api, ApiError, getSession, signInWithGoogle } from '@/lib/api';
+import { SignInButton } from '@/components/SignInButton';
+import { api, ApiError, getSession } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import {
 	capitalNote,
@@ -192,8 +193,7 @@ export default function Votar() {
 				</p>
 				<h1 className="mt-1 text-2xl font-bold tracking-tight">Tu jornada de voto</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Marca una opción en cada encuesta y confirma todo de una vez. Tu voto es anónimo y solo
-					puedes votar una vez por semana.
+					Marca una opción en cada cédula y confirma todos tus votos.
 				</p>
 			</div>
 
@@ -237,20 +237,25 @@ export default function Votar() {
 				})}
 			</div>
 
-			<Button
-				className="mt-8 w-full min-h-[52px] text-base"
-				size="lg"
-				disabled={readyCount === 0 || submitting}
-				onClick={() => (loggedIn ? setConfirmOpen(true) : signInWithGoogle())}
-			>
-				{submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-				<Vote className="mr-2 h-5 w-5" />
-				Confirmar mis votos ({readyCount} de {pending.length})
-			</Button>
+			{loggedIn ? (
+				<Button
+					className="mt-8 w-full min-h-[52px] text-base"
+					size="lg"
+					disabled={readyCount === 0 || submitting}
+					onClick={() => setConfirmOpen(true)}
+				>
+					{submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+					<Vote className="mr-2 h-5 w-5" />
+					Confirmar mis votos ({readyCount} de {pending.length})
+				</Button>
+			) : (
+				<SignInButton className="mt-8 w-full min-h-[52px] text-base" size="lg" disabled={readyCount === 0}>
+					<Vote className="mr-2 h-5 w-5" />
+					Confirmar mis votos ({readyCount} de {pending.length})
+				</SignInButton>
+			)}
 			<p className="mt-2 text-center text-xs text-muted-foreground">
-				{loggedIn
-					? 'Al votar aceptas participar una vez por semana. Se usa tu cuenta de Google para evitar votos duplicados.'
-					: 'Necesitamos tu cuenta de Google para garantizar un solo voto por persona cada semana.'}
+				Se usa tu cuenta de Google solo para evitar votos duplicados.
 			</p>
 
 			{/* Confirmación del voto (irreversible esta semana) */}

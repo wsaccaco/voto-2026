@@ -21,7 +21,7 @@ export function ResultBar({ result, showVotes }: { result: CandidateResult; show
 							height={36}
 							loading="lazy"
 							onError={() => setLogoError(true)}
-							className="h-9 w-9 shrink-0 rounded-md object-contain"
+							className="h-9 w-9 shrink-0 rounded-md border border-border object-contain"
 						/>
 					) : (
 						<span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />

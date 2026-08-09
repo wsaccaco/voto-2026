@@ -97,7 +97,7 @@ export default function ResultsIndex() {
 			</div>
 
 			{/* CTA permanente: votar esta semana mientras haya encuestas pendientes */}
-			{inviting && (
+			{inviting ? (
 				<div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
 					<div>
 						<p className="text-sm font-semibold">Vota esta semana</p>
@@ -111,7 +111,19 @@ export default function ResultsIndex() {
 						</Link>
 					</Button>
 				</div>
-			)}
+			) : hasVotedAll ? (
+				<div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-center">
+					<div>
+						<p className="text-sm font-semibold">Ya votaste esta semana</p>
+						<p className="text-sm text-muted-foreground">
+							Gracias por participar. Podrás votar de nuevo el lunes.
+						</p>
+					</div>
+					<Button asChild variant="outline" className="shrink-0">
+						<Link to="/">Cambiar mi ubicación</Link>
+					</Button>
+				</div>
+			) : null}
 
 			{/* Filtro por elección */}
 			{available.length > 1 && (

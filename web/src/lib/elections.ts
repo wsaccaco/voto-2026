@@ -118,6 +118,26 @@ export function cleanSurveyTitle(title: string): string {
 }
 
 /**
+ * Ordena los distritos de una provincia para el selector: la capital primero,
+ * luego los que tienen más votos en su cédula distrital (descendente) y el
+ * resto en el orden original. `activity` es opcional: si no hay datos se
+ * mantiene el orden del catálogo.
+ */
+export function orderedDistricts(
+	provinceName: string | null | undefined,
+	activity: Record<string, number> | null
+): string[] {
+	const province = getProvince(provinceName);
+	if (!province) return [];
+	const votes = (d: string) => activity?.[d] ?? 0;
+	return [...province.districts].sort((a, b) => {
+		if (a === province.capital) return -1;
+		if (b === province.capital) return 1;
+		return votes(b) - votes(a);
+	});
+}
+
+/**
  * Rango de fechas en un único formato legible, ej. "3 – 9 de agosto de 2026"
  * o "28 de julio – 3 de agosto de 2026" si cruza meses.
  */

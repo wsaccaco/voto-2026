@@ -1,12 +1,20 @@
 import { Hono } from 'hono';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import {
 	getOrCreateDbUser,
 	getSessionUser,
 	type SessionUser
 } from '../auth.js';
 import { db } from '../db/index.js';
-import { candidates, deviceFingerprints, responses, surveys, userProfiles, users } from '../db/schema.js';
+import {
+	candidates,
+	deviceFingerprints,
+	elections,
+	responses,
+	surveys,
+	userProfiles,
+	users
+} from '../db/schema.js';
 import { getComparison, getSurveyResults, type Grouping } from '../lib/results.js';
 import { readPartyLogo } from '../lib/party-logos.js';
 import { rateLimit, sha256 } from '../lib/security.js';
@@ -256,6 +264,27 @@ publicRoutes.post('/vote', async (c) => {
 		voted,
 		skipped,
 		message: '¡Tus votos fueron registrados! Gracias por participar.'
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Actividad por distrito (para ordenar el selector de ubicación del frontend)
+// ---------------------------------------------------------------------------
+// Los votos de las cédulas distritales se asocian al distrito de la elección;
+// las capitales provinciales (sin cédula distrital) las fija primero el frontend.
+publicRoutes.get('/districts/activity', async (c) => {
+	const rows = await db
+		.select({ district: elections.district, votes: count() })
+		.from(responses)
+		.innerJoin(surveys, eq(surveys.id, responses.surveyId))
+		.innerJoin(elections, eq(elections.id, surveys.electionId))
+		.where(eq(elections.level, 'distrital'))
+		.groupBy(elections.district)
+		.orderBy(desc(count()));
+	return c.json({
+		activity: rows
+			.filter((r) => r.district)
+			.map((r) => ({ district: r.district as string, votes: r.votes }))
 	});
 });
 
