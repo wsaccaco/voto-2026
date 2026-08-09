@@ -92,6 +92,11 @@ function skipGroupForToday(state: State, groupId: string): void {
 	}
 }
 
+// Pausa tras un error fatal antes de terminar el proceso: sin ella, un
+// contenedor con restart automático (Coolify/Docker) entra en crash-loop de
+// reinicios en ráfaga que golpean a Facebook y empeoran la detección.
+const FATAL_BACKOFF_MS = 10 * 60_000;
+
 async function handleFatal(err: unknown, poster: FacebookPoster): Promise<never> {
 	if (err instanceof SessionExpiredError) {
 		alert(`Sesión expirada: ${err.message} Flujo de recuperación: "npm run login" en una máquina con GUI, luego "npm run deploy-session" y reiniciar el daemon.`);
@@ -101,6 +106,8 @@ async function handleFatal(err: unknown, poster: FacebookPoster): Promise<never>
 		log.error(`Error inesperado: ${(err as Error).stack ?? String(err)}`);
 	}
 	await poster.close();
+	log.info(`Esperando ${FATAL_BACKOFF_MS / 60_000} min antes de salir (backoff anti-crash-loop); el próximo arranque reintentará la sesión.`);
+	await sleep(FATAL_BACKOFF_MS);
 	process.exit(1);
 }
 

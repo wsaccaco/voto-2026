@@ -47,8 +47,8 @@ npx playwright install --with-deps chromium   # instala libs de sistema
 
 ## Configuración
 
-- `config/groups.json` — franjas horarias (defaults: mañana 07:00–10:30,
-  tarde 12:00–16:00, noche 18:00–22:00 hora Perú), límites, y la lista de
+- `config/groups.json` — franjas horarias (defaults: mañana 04:30–11:00,
+  tarde 11:00–17:00, noche 17:00–23:00 hora Perú, contiguas), límites, y la lista de
   grupos. Cada grupo necesita: `id`, `name`, `url` (del grupo en Facebook),
   `district` y `links` (enlaces de resultados que rota; admite varios para
   grupos que cubren más de un distrito). Reemplaza los grupos de ejemplo.
@@ -151,7 +151,12 @@ docker run -d --name fb-promo -v fb-promo-data:/app/.data fb-promo   # daemon
 ## Comportamiento del planificador
 
 - Intenta publicar cada **10–15 min** (aleatorio), solo dentro de la franja
-  activa (mañana/tarde/noche, hora Perú). Fuera de franja duerme.
+  activa (mañana/tarde/noche, hora Perú). Franjas contiguas de 04:30 a 23:00;
+  fuera de franja (madrugada) duerme.
+- Si la verificación de sesión falla se reintenta **3 veces** con esperas
+  crecientes (90–120 s): un login transitorio de Facebook no tira el daemon.
+  Si persiste, alerta y espera **10 min** antes de salir para evitar
+  crash-loops de reinicios en ráfaga (el próximo arranque reintentará).
 - Máximo **1 publicación por grupo por franja** => **3/día por grupo**.
 - Gap mínimo de **4 h** entre publicaciones al mismo grupo (cubierto por las
   franjas). Nunca dos publicaciones consecutivas al mismo grupo.

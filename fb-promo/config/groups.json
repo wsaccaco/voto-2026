@@ -1,9 +1,9 @@
 {
 	"timezone": "America/Lima",
 	"windows": {
-		"morning": { "start": "07:00", "end": "10:30" },
-		"afternoon": { "start": "12:00", "end": "16:00" },
-		"evening": { "start": "18:00", "end": "22:00" }
+		"morning": { "start": "04:30", "end": "11:00" },
+		"afternoon": { "start": "11:00", "end": "17:00" },
+		"evening": { "start": "17:00", "end": "23:00" }
 	},
 	"maxPerDayPerGroup": 3,
 	"maxPerDayGlobal": 70,

@@ -197,19 +197,37 @@ export class FacebookPoster {
 	}
 
 	// Verifica que la sesión siga viva. Lanza SessionExpiredError / BlockedError.
+	// Facebook a veces muestra la página de login de forma transitoria (primer
+	// acceso desde una IP nueva o checks ligeros): se reintenta 3 veces con
+	// esperas crecientes antes de declarar la sesión expirada. Los checkpoints
+	// (BlockedError) no se reintentan: requieren revisión manual de la cuenta.
 	async verifySession(): Promise<void> {
-		const page = await this.page();
-		try {
-			await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded' });
-			await sleep(4_000);
-			await detectBlock(page);
-			if (!(await looksLoggedIn(page))) {
-				throw new SessionExpiredError('Facebook pide iniciar sesión de nuevo: el storageState expiró.');
+		const attempts = 3;
+		let lastErr: Error | null = null;
+		for (let attempt = 1; attempt <= attempts; attempt++) {
+			const page = await this.page();
+			try {
+				await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded' });
+				await sleep(4_000);
+				await detectBlock(page);
+				if (await looksLoggedIn(page)) {
+					log.info('Sesión verificada: cuenta autenticada.');
+					return;
+				}
+				lastErr = new SessionExpiredError('Facebook pide iniciar sesión de nuevo: el storageState expiró.');
+			} catch (err) {
+				if (err instanceof BlockedError) throw err;
+				lastErr = err as Error;
+			} finally {
+				await page.close().catch(() => {});
 			}
-			log.info('Sesión verificada: cuenta autenticada.');
-		} finally {
-			await page.close().catch(() => {});
+			if (attempt < attempts) {
+				const waitMs = 60_000 + attempt * 30_000; // 90 s, luego 120 s
+				log.warn(`Verificación de sesión fallida (intento ${attempt}/${attempts}). Reintentando en ${Math.round(waitMs / 1_000)} s...`);
+				await sleep(waitMs);
+			}
 		}
+		throw lastErr ?? new SessionExpiredError('No se pudo verificar la sesión.');
 	}
 
 	async postToGroup(group: GroupConfig, text: string): Promise<void> {
