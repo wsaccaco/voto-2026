@@ -57,12 +57,6 @@ export interface AppConfig {
 	groups: GroupConfig[];
 }
 
-export interface DeployConfig {
-	host: string;
-	user: string;
-	remotePath: string;
-}
-
 function readJson<T>(file: string): T {
 	const path = join(configDir, file);
 	try {
@@ -151,12 +145,4 @@ export function loadTemplates(): string[] {
 		throw new Error('config/templates.json debe definir al menos 3 plantillas');
 	}
 	return raw.templates;
-}
-
-export function loadDeployConfig(): DeployConfig {
-	const raw = readJson<Partial<DeployConfig>>('deploy.json');
-	if (!raw.host || !raw.user || !raw.remotePath) {
-		throw new Error('config/deploy.json debe definir host, user y remotePath');
-	}
-	return raw as DeployConfig;
 }

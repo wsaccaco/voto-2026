@@ -53,7 +53,6 @@ npx playwright install --with-deps chromium   # instala libs de sistema
   `district` y `links` (enlaces de resultados que rota; admite varios para
   grupos que cubren más de un distrito). Reemplaza los grupos de ejemplo.
 - `config/templates.json` — plantillas de texto con `{distrito}` y `{enlace}`.
-- `config/deploy.json` — destino SSH para `deploy-session`.
 
 ## Flujo de uso
 
@@ -67,24 +66,20 @@ Abre Chromium visible; inicia sesión manualmente (password + 2FA). Al
 detectar la sesión exporta cookies/localStorage a
 `.data/session/storage-state.json`. No se guardan credenciales.
 
-### 2. Llevar la sesión al servidor
+### 2. Llevar la sesión al servidor (vía git)
 
-**Opción A (por defecto): vía git.** El archivo `.data/session/storage-state.json`
-está trackeado a propósito:
+El archivo `.data/session/storage-state.json` está trackeado a propósito:
 
 ```bash
 git add fb-promo/.data/session/storage-state.json
 git commit -m "Actualizar sesión de FB"
 git push
-# en el servidor:
+# en el servidor (o redeploy en Coolify):
 git pull
 ```
 
 Solo se trackea la sesión: `state.json`, logs y el perfil del navegador están
 en `.gitignore` (el estado lo genera el servidor y commitearlo causaría conflictos).
-
-**Opción B: scp.** Edita `config/deploy.json` y ejecuta `npm run deploy-session`
-(hace `scp` del storageState a la ruta configurada).
 
 ### 3. Probar y arrancar el daemon (en el servidor)
 
@@ -169,8 +164,8 @@ docker run -d --name fb-promo -v fb-promo-data:/app/.data fb-promo   # daemon
 El daemon escribe alertas críticas en `.data/ALERT.txt` y se detiene si:
 
 - **Sesión expirada** (`SessionExpiredError`): repite `npm run login` en la
-  máquina con GUI, sube el nuevo `storage-state.json` (git push / deploy-session)
-  y reinicia el daemon.
+  máquina con GUI, sube el nuevo `storage-state.json` (git push) y reinicia el
+  daemon.
 - **Checkpoint/bloqueo** (`BlockedError`): revisa la cuenta manualmente en un
   navegador normal, resuelve la verificación, espera un par de días y reduce
   `--max-per-day` antes de reiniciar.
@@ -178,7 +173,7 @@ El daemon escribe alertas críticas en `.data/ALERT.txt` y se detiene si:
 Monitoreo sugerido: un cron que avise si `.data/ALERT.txt` existe o fue
 modificado recientemente.
 
-## Opción B: login sin máquina local (CDP por SSH)
+## Login sin máquina local (CDP por SSH)
 
 Si no puedes instalar el proyecto en una máquina con GUI:
 
@@ -199,10 +194,10 @@ Si no puedes instalar el proyecto en una máquina con GUI:
 
 ```
 fb-promo/
-├── config/            groups.json, templates.json, deploy.json
-├── .data/             (gitignore) sesión, estado, logs, ALERT.txt
+├── config/            groups.json, templates.json
+├── .data/             (gitignore parcial) sesión trackeada, estado/logs locales
 └── src/
-    ├── index.ts       CLI: login | deploy-session | dry-run | once | run
+    ├── index.ts       CLI: login | dry-run | once | run
     ├── scheduler.ts   franjas horarias, elegibilidad, selección por ciclo
     ├── content.ts     rotación de plantillas y enlaces
     ├── poster.ts      Playwright: sesión, compositor, detección de bloqueos

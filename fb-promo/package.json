@@ -9,7 +9,6 @@
 	},
 	"scripts": {
 		"login": "tsx src/index.ts login",
-		"deploy-session": "tsx src/index.ts deploy-session",
 		"dry-run": "tsx src/index.ts dry-run",
 		"once": "tsx src/index.ts once",
 		"debug": "tsx src/index.ts once --debug",

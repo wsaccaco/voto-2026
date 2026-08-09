@@ -1,6 +1,6 @@
 node_modules/
 
-# .data: solo se trackea la sesión (mecanismo de transferencia al servidor).
+# .data: solo se trackea la sesión (viaja al servidor vía git).
 # El estado del planificador y los logs son locales de cada máquina.
 .data/state.json
 .data/logs/

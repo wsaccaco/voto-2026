@@ -9,8 +9,10 @@ import { dataDir, log } from './log.js';
 // bloqueo o sesión vencida se lanzan errores tipados: el daemon debe pausar
 // y pedir intervención humana (nunca se intenta evadir controles).
 
+// UA coherente entre el login interactivo y el daemon (Chrome de escritorio
+// actual; si se cambia, hay que re-exportar la sesión con "npm run login").
 export const USER_AGENT =
-	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
 export const sessionDir = join(dataDir, 'session');
 export const storageStateFile = join(sessionDir, 'storage-state.json');
@@ -91,12 +93,77 @@ const PENDING_APPROVAL_KEYWORDS = [
 	'will be visible after approval'
 ];
 
+// Formulario de login: Facebook cambia el DOM con frecuencia; se cubren las
+// variantes conocidas (name, id, autocomplete y placeholders en es/en).
+const LOGIN_INPUT_SELECTORS = [
+	'input[name="email"]',
+	'input#email',
+	'input[autocomplete="username"]',
+	'input[placeholder="Correo electrónico o número de teléfono"]',
+	'input[placeholder="Email or phone number"]'
+];
+
+// Marcadores del header con sesión iniciada (avatar y notificaciones).
+const LOGGED_IN_SIGNAL_SELECTORS = [
+	'[aria-label="Tu perfil"]',
+	'[aria-label="Notificaciones"]',
+	'[aria-label="Profile"]',
+	'[aria-label="Notifications"]'
+];
+
+// Avisos que Facebook muestra cuando la sesión caducó a mitad de navegación
+// (página de re-login sin formulario completo o login inline de la SPA).
+const SESSION_EXPIRED_KEYWORDS = [
+	'tu sesión expiró',
+	'tu sesión ha expirado',
+	'vuelve a iniciar sesión',
+	'únete a facebook o inicia sesión',
+	'join facebook',
+	'sign in',
+	'session expired',
+	'your session has expired',
+	'log in to continue'
+];
+
+type SessionSignal = 'logged-in' | 'logged-out' | 'unknown';
+
 async function looksLoggedIn(page: Page): Promise<boolean> {
 	const url = page.url();
 	if (!url.includes('facebook.com')) return false;
 	if (/\/login|\/checkpoint|\/challenge/.test(url)) return false;
-	const emailInputs = await page.locator('input[name="email"]').count().catch(() => 1);
-	return emailInputs === 0;
+	// El login de Facebook no siempre redirige la URL (SPA inline): la señal
+	// más fiable es la presencia del formulario de acceso.
+	if ((await page.locator(LOGIN_INPUT_SELECTORS.join(',')).count().catch(() => 0)) > 0) return false;
+	const bodyText = await page
+		.locator('body')
+		.innerText()
+		.catch(() => '');
+	const lower = bodyText.slice(0, 4_000).toLowerCase();
+	if (SESSION_EXPIRED_KEYWORDS.some((kw) => lower.includes(kw))) return false;
+	return true;
+}
+
+// Señal inequívoca de la página: formulario de login o header autenticado.
+async function sessionSignal(page: Page): Promise<SessionSignal> {
+	const url = page.url();
+	if (/\/login|\/checkpoint|\/challenge/.test(url)) return 'logged-out';
+	if ((await page.locator(LOGIN_INPUT_SELECTORS.join(',')).count().catch(() => 0)) > 0) return 'logged-out';
+	if ((await page.locator(LOGGED_IN_SIGNAL_SELECTORS.join(',')).count().catch(() => 0)) > 0) return 'logged-in';
+	return 'unknown';
+}
+
+// Espera hasta timeoutMs a que la página muestre una señal de sesión. La SPA
+// de Facebook redirige y renderiza de forma asíncrona: sin esta espera, un
+// check prematuro puede dar "autenticado" (o "expirado") de forma errónea.
+async function waitForSessionSignal(page: Page, timeoutMs: number): Promise<SessionSignal> {
+	const deadline = Date.now() + timeoutMs;
+	let signal: SessionSignal = 'unknown';
+	while (Date.now() < deadline) {
+		signal = await sessionSignal(page);
+		if (signal !== 'unknown') return signal;
+		await sleep(500);
+	}
+	return signal;
 }
 
 async function detectBlock(page: Page): Promise<void> {
@@ -137,11 +204,25 @@ export async function loginInteractive(timeoutMs = 15 * 60_000): Promise<void> {
 			await sleep(3_000);
 			const current = context.pages().at(-1);
 			if (current && (await looksLoggedIn(current).catch(() => false))) {
-				await sleep(5_000); // deja que FB termine de cargar tras el login
-				await context.storageState({ path: storageStateFile });
-				log.info(`Sesión exportada a ${storageStateFile}`);
-				log.info('Ahora puedes copiarla al servidor con: npm run deploy-session');
-				return;
+				// La home puede verse "autenticada" con cookies parciales (c_user
+				// viva pero la cookie de autorización revocada): se confirma contra
+				// el feed de grupos (exige sesión real) antes de exportar; si no
+				// confirma, se sigue esperando el login del usuario.
+				const probe = await context.newPage();
+				try {
+					await probe.goto('https://www.facebook.com/groups/feed/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
+					const signal = await waitForSessionSignal(probe, 15_000);
+					if (signal === 'logged-in') {
+						await sleep(5_000); // deja que FB termine de cargar tras el login
+						await context.storageState({ path: storageStateFile });
+						log.info(`Sesión exportada a ${storageStateFile}`);
+						log.info('Súbela al repo (git add/commit/push) y haz pull o redeploy en el servidor.');
+						return;
+					}
+					log.warn('La home parece autenticada pero los grupos aún piden login: se sigue esperando tu inicio de sesión...');
+				} finally {
+					await probe.close().catch(() => {});
+				}
 			}
 		}
 		throw new Error('Tiempo de espera agotado: no se detectó el inicio de sesión.');
@@ -197,9 +278,12 @@ export class FacebookPoster {
 	}
 
 	// Verifica que la sesión siga viva. Lanza SessionExpiredError / BlockedError.
-	// Facebook a veces muestra la página de login de forma transitoria (primer
-	// acceso desde una IP nueva o checks ligeros): se reintenta 3 veces con
-	// esperas crecientes antes de declarar la sesión expirada. Los checkpoints
+	// Se comprueba contra el feed de grupos (https://www.facebook.com/groups/feed/),
+	// no contra la home: la home es pública y carga igual aunque la sesión ya no
+	// sirva para contenido autenticado (grupos), que es exactamente lo que usa el
+	// daemon. Facebook a veces redirige a login de forma transitoria o lenta
+	// (IP nueva o checks ligeros): se espera la señal de sesión con margen y se
+	// reintenta 3 veces antes de declarar la sesión expirada. Los checkpoints
 	// (BlockedError) no se reintentan: requieren revisión manual de la cuenta.
 	async verifySession(): Promise<void> {
 		const attempts = 3;
@@ -207,13 +291,14 @@ export class FacebookPoster {
 		for (let attempt = 1; attempt <= attempts; attempt++) {
 			const page = await this.page();
 			try {
-				await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded' });
-				await sleep(4_000);
+				await page.goto('https://www.facebook.com/groups/feed/', { waitUntil: 'domcontentloaded', timeout: 45_000 });
+				const signal = await waitForSessionSignal(page, 25_000);
 				await detectBlock(page);
-				if (await looksLoggedIn(page)) {
+				if (signal === 'logged-in' || (signal === 'unknown' && (await looksLoggedIn(page)))) {
 					log.info('Sesión verificada: cuenta autenticada.');
 					return;
 				}
+				await this.diagnoseSessionFailure(page, 'verify');
 				lastErr = new SessionExpiredError('Facebook pide iniciar sesión de nuevo: el storageState expiró.');
 			} catch (err) {
 				if (err instanceof BlockedError) throw err;
@@ -230,14 +315,31 @@ export class FacebookPoster {
 		throw lastErr ?? new SessionExpiredError('No se pudo verificar la sesión.');
 	}
 
+	// Deja evidencia (URL final, captura y texto visible) cuando la sesión falla:
+	// permite distinguir entre redirección a login, checkpoint o "tu sesión
+	// expiró" sin depender de la consola del servidor.
+	private async diagnoseSessionFailure(page: Page, label: string): Promise<void> {
+		const url = page.url();
+		const shot = join(dataDir, 'logs', `session-fail-${label}-${Date.now()}.png`);
+		await page.screenshot({ path: shot }).catch(() => {});
+		const body = (await page.locator('body').innerText().catch(() => '')).trim().slice(0, 300).replace(/\s+/g, ' ');
+		log.error(`[sesión] URL final (${label}): ${url}`);
+		log.error(`[sesión] Captura de diagnóstico: ${shot}`);
+		if (body) log.error(`[sesión] Texto visible: ${body}`);
+	}
+
 	async postToGroup(group: GroupConfig, text: string): Promise<void> {
 		const page = await this.page();
 		try {
 			log.info(`Navegando al grupo "${group.name}" (${group.url})`);
-			await page.goto(group.url, { waitUntil: 'domcontentloaded' });
+			await page.goto(group.url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
 			await humanDelay();
 			await detectBlock(page);
-			if (!(await looksLoggedIn(page))) {
+			// Espera la señal de sesión: si Facebook redirige a login (sesión
+			// degradada), se detecta aquí y no se intenta publicar a ciegas.
+			const signal = await waitForSessionSignal(page, 15_000);
+			if (signal === 'logged-out' || (signal === 'unknown' && !(await looksLoggedIn(page)))) {
+				await this.diagnoseSessionFailure(page, `grupo-${group.id}`);
 				throw new SessionExpiredError('La sesión expiró mientras se navegaba al grupo.');
 			}
 			await this.debugShot(page, `1-grupo-${group.id}`);

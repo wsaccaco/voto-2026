@@ -1,9 +1,7 @@
-import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import type { AppConfig, WindowName } from './config.js';
-import { WINDOW_LABELS, WINDOW_NAMES, loadConfig, loadDeployConfig, loadTemplates } from './config.js';
+import { WINDOW_LABELS, WINDOW_NAMES, loadConfig, loadTemplates } from './config.js';
 import { generatePost } from './content.js';
 import { alert, log } from './log.js';
 import {
@@ -21,10 +19,10 @@ import { emptyState, loadState, rolloverIfNeeded, saveState, type State } from '
 
 // CLI del publicador:
 //   login           login interactivo local (máquina con GUI), exporta storageState
-//   deploy-session  copia el storageState al servidor vía scp
 //   dry-run         simula el planificador sin abrir navegador ni publicar
 //   once            publica 1 ciclo y termina (pruebas)
 //   run             daemon 24/7 headless
+// La sesión viaja al servidor vía git (.data/session/storage-state.json).
 // Flags: --max-per-day N (publicaciones/día por grupo, máx. 3)
 
 function refreshState(config: AppConfig): State {
@@ -99,7 +97,7 @@ const FATAL_BACKOFF_MS = 10 * 60_000;
 
 async function handleFatal(err: unknown, poster: FacebookPoster): Promise<never> {
 	if (err instanceof SessionExpiredError) {
-		alert(`Sesión expirada: ${err.message} Flujo de recuperación: "npm run login" en una máquina con GUI, luego "npm run deploy-session" y reiniciar el daemon.`);
+		alert(`Sesión expirada: ${err.message} Revisa .data/logs/session-fail-*.png para ver qué mostró Facebook. Flujo de recuperación: "npm run login" en una máquina con GUI, sube .data/session/storage-state.json por git (commit/push) y reinicia el daemon.`);
 	} else if (err instanceof BlockedError) {
 		alert(`Facebook mostró un control/checkpoint: ${err.message} Revisa la cuenta manualmente y reduce el ritmo antes de reiniciar.`);
 	} else {
@@ -264,27 +262,9 @@ function commandDryRun(config: AppConfig, templates: string[]): void {
 	log.info('Fin de la simulación.');
 }
 
-function commandDeploySession(): void {
-	if (!existsSync(storageStateFile)) {
-		throw new Error(`No existe ${storageStateFile}. Ejecuta primero "npm run login".`);
-	}
-	const deploy = loadDeployConfig();
-	if (/REEMPLAZAR|IP_O_HOST/.test(deploy.host)) {
-		throw new Error('config/deploy.json todavía tiene valores de ejemplo: edita host, user y remotePath.');
-	}
-	const target = `${deploy.user}@${deploy.host}`;
-	log.info(`Creando directorio remoto y copiando storageState a ${target}:${deploy.remotePath}`);
-	const mkdir = spawnSync('ssh', [target, `mkdir -p '${deploy.remotePath}'`], { stdio: 'inherit' });
-	if (mkdir.status !== 0) throw new Error('No se pudo crear el directorio remoto por SSH.');
-	const scp = spawnSync('scp', [storageStateFile, `${target}:${deploy.remotePath}/storage-state.json`], { stdio: 'inherit' });
-	if (scp.status !== 0) throw new Error('scp falló al copiar el storageState.');
-	log.info('Listo. Reinicia el daemon en el servidor para que tome la nueva sesión.');
-}
-
 function printUsage(): void {
 	console.log(`Uso: npm run <comando>
   login            Login interactivo local (requiere GUI); exporta la sesión
-  deploy-session   Copia la sesión al servidor (configura config/deploy.json)
   dry-run          Simula el planificador sin publicar
   once             Publica 1 ciclo y termina (dentro de una franja activa)
   start            Daemon 24/7 headless
@@ -305,7 +285,7 @@ async function main(): Promise<void> {
 		}
 	});
 	const command = positionals[0];
-	const validCommands = ['login', 'deploy-session', 'dry-run', 'once', 'run'];
+	const validCommands = ['login', 'dry-run', 'once', 'run'];
 	if (!command || !validCommands.includes(command)) {
 		printUsage();
 		process.exit(command ? 1 : 0);
@@ -313,10 +293,6 @@ async function main(): Promise<void> {
 
 	if (command === 'login') {
 		await loginInteractive();
-		return;
-	}
-	if (command === 'deploy-session') {
-		commandDeploySession();
 		return;
 	}
 
