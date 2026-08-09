@@ -158,6 +158,11 @@ docker run -d --name fb-promo -v fb-promo-data:/app/.data fb-promo   # daemon
 - Tope global diario configurable (default 30) como red de seguridad.
 - Estado persistente en `.data/state.json`; sobrevive reinicios y se
   reinicia por día.
+- **Grupos sin compositor de texto simple** (p. ej. de compraventa): al
+  detectarse, se marcan en `unsupportedGroups` (`.data/state.json`) y se
+  omiten permanentemente, sin detener el ciclo ni afectar al resto de
+  publicaciones. Se revalidan publicando con `npm run once -- --group ID`:
+  si el post sale, el grupo se desmarca solo.
 
 ## Recuperación ante alertas
 
@@ -211,4 +216,7 @@ fb-promo/
 Los selectores del compositor de Facebook (`COMPOSER_SELECTORS` /
 `SUBMIT_SELECTORS` en `src/poster.ts`) pueden romperse cuando Facebook cambia
 su DOM. Si `npm run once` empieza a fallar con "No se encontró el compositor",
-inspecciona el DOM del grupo y actualiza esos selectores.
+inspecciona el DOM del grupo y actualiza esos selectores. El grupo afectado
+queda en omisión permanente (`unsupportedGroups`): tras corregir los
+selectores, revalídalo con `npm run once -- --group ID` para que se desmarque
+y vuelva a rotar en el planificador.

@@ -21,6 +21,10 @@ const loginProfileDir = join(sessionDir, 'profile');
 export class SessionExpiredError extends Error {}
 export class BlockedError extends Error {}
 export class PostFailedError extends Error {}
+// Grupo sin compositor de texto simple (p. ej. compraventa): no es
+// automatizable y se omite permanentemente (a diferencia de PostFailedError,
+// que puede ser transitorio y se reintenta al día siguiente).
+export class NoComposerError extends PostFailedError {}
 
 export function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -422,7 +426,7 @@ export class FacebookPoster {
 		// Captura para poder diagnosticar el DOM del grupo y ajustar selectores.
 		const shot = join(dataDir, 'logs', `composer-fail-${Date.now()}.png`);
 		await page.screenshot({ path: shot }).catch(() => {});
-		throw new PostFailedError(`No se encontró un compositor de texto simple en el grupo (captura: ${shot}).`);
+		throw new NoComposerError(`No se encontró un compositor de texto simple en el grupo (captura: ${shot}).`);
 	}
 
 	private async typeHuman(page: Page, text: string): Promise<void> {

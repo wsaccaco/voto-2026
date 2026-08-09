@@ -7,6 +7,7 @@ import { alert, log } from './log.js';
 import {
 	BlockedError,
 	FacebookPoster,
+	NoComposerError,
 	PostFailedError,
 	SessionExpiredError,
 	humanDelay,
@@ -48,7 +49,14 @@ async function runCycle(
 	poster: FacebookPoster
 ): Promise<number> {
 	const now = new Date();
-	const groups = pickGroupsForCycle(config, state, windowName, now);
+	const picked = pickGroupsForCycle(config, state, windowName, now);
+	// Los grupos sin compositor de texto simple se omiten permanentemente (no
+	// se navega a ellos): no bloquean el resto del ciclo.
+	const omitted = picked.filter((g) => state.unsupportedGroups.includes(g.id));
+	const groups = picked.filter((g) => !state.unsupportedGroups.includes(g.id));
+	if (omitted.length > 0) {
+		log.info(`[${WINDOW_LABELS[windowName]}] ${omitted.length} grupo(s) sin compositor omitido(s): ${omitted.map((g) => g.name).join(', ')}`);
+	}
 	if (groups.length === 0) {
 		log.info(`[${WINDOW_LABELS[windowName]}] Sin grupos elegibles en este ciclo.`);
 		return 0;
@@ -66,8 +74,10 @@ async function runCycle(
 			await poster.postToGroup(group, text);
 		} catch (err) {
 			if (err instanceof PostFailedError) {
-				log.warn(`Fallo al publicar en "${group.name}": ${err.message} (se omite este grupo)`);
+				const permanent = err instanceof NoComposerError;
+				log.warn(`Fallo al publicar en "${group.name}": ${err.message} (se omite este grupo${permanent ? ' permanentemente' : ', se reintentará mañana'})`);
 				skipGroupForToday(state, group.id);
+				if (permanent) markUnsupported(state, group.id);
 				continue;
 			}
 			throw err;
@@ -80,13 +90,24 @@ async function runCycle(
 	return posted;
 }
 
-// Marca un grupo como descartado por hoy (p. ej. sin compositor de texto
-// simple o publicación no confirmada): no se reintenta en los próximos ciclos.
+// Marca un grupo como descartado por hoy (p. ej. publicación no confirmada):
+// no se reintenta en los próximos ciclos.
 function skipGroupForToday(state: State, groupId: string): void {
 	if (!state.skippedToday.includes(groupId)) {
 		state.skippedToday.push(groupId);
 		saveState(state);
 		log.warn(`El grupo ${groupId} se omitirá por el resto del día.`);
+	}
+}
+
+// Marca un grupo sin compositor de texto simple (compraventa, etc.): se omite
+// permanentemente (persiste entre días) hasta que se revalide publicando con
+// "npm run once -- --group ID", que lo desmarca automáticamente.
+function markUnsupported(state: State, groupId: string): void {
+	if (!state.unsupportedGroups.includes(groupId)) {
+		state.unsupportedGroups.push(groupId);
+		saveState(state);
+		log.warn(`El grupo ${groupId} se omitirá de forma permanente por no tener compositor de texto simple.`);
 	}
 }
 
@@ -133,9 +154,16 @@ async function commandOnce(
 	if (options.groupId) {
 		const group = config.groups.find((g) => g.id === options.groupId || g.url.includes(options.groupId!));
 		if (!group) throw new Error(`No se encontró el grupo "${options.groupId}" en config/groups.json`);
+		// Un grupo forzado se intenta aunque esté en omisión permanente: sirve
+		// para revalidar (si publica, se desmarca solo).
 		groups = [group];
 	} else {
-		groups = pickGroupsForCycle(config, state, windowName, now);
+		const picked = pickGroupsForCycle(config, state, windowName, now);
+		const omitted = picked.filter((g) => state.unsupportedGroups.includes(g.id));
+		groups = picked.filter((g) => !state.unsupportedGroups.includes(g.id));
+		if (omitted.length > 0) {
+			log.info(`${omitted.length} grupo(s) sin compositor omitido(s): ${omitted.map((g) => g.name).join(', ')}`);
+		}
 	}
 	if (groups.length === 0) {
 		log.warn('Sin grupos elegibles en esta franja (todos ya publicaron hoy o están en cooldown).');
@@ -157,14 +185,22 @@ async function commandOnce(
 				await poster.postToGroup(group, text);
 			} catch (err) {
 				if (err instanceof PostFailedError) {
+					const permanent = err instanceof NoComposerError;
 					log.warn(`Fallo al publicar en "${group.name}": ${err.message}`);
 					skipGroupForToday(state, group.id);
+					if (permanent) markUnsupported(state, group.id);
 					continue;
 				}
 				throw err;
 			}
 			recordPost(state, group.id, windowName, templateIndex, new Date());
 			saveState(state);
+			// Publicación exitosa revalida un grupo antes marcado sin compositor.
+			if (state.unsupportedGroups.includes(group.id)) {
+				state.unsupportedGroups = state.unsupportedGroups.filter((id) => id !== group.id);
+				saveState(state);
+				log.info(`El grupo ${group.id} se revalidó: se quitó de la omisión permanente.`);
+			}
 		}
 		if (options.debug) {
 			// Mantiene el navegador visible para inspeccionar el resultado.

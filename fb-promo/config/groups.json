@@ -138,6 +138,7 @@
 			"name": "Mercado Libre Apurímac",
 			"url": "https://www.facebook.com/groups/mercadolibreapurimac",
 			"district": "Abancay",
+			"enabled": false,
 			"links": [
 				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/3", "district": "Abancay" },
 				{ "url": "https://voto.pukllayandahuaylas.pe/resultados/1", "district": "Apurímac" }

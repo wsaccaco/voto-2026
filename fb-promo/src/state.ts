@@ -20,6 +20,9 @@ export interface State {
 	recentTemplates: Record<string, number[]>;
 	// grupos descartados hoy (p. ej. sin compositor de texto simple)
 	skippedToday: string[];
+	// grupos sin compositor de texto simple: omisión permanente (persiste entre
+	// días) hasta que se revaliden con "npm run once -- --group ID"
+	unsupportedGroups: string[];
 	// último grupo publicado (evitar consecutivos dentro de un ciclo)
 	lastGroupId?: string;
 }
@@ -31,7 +34,8 @@ export function emptyState(date: string): State {
 		postsByWindow: {},
 		lastPostedAt: {},
 		recentTemplates: {},
-		skippedToday: []
+		skippedToday: [],
+		unsupportedGroups: []
 	};
 }
 
@@ -42,6 +46,7 @@ export function loadState(): State | null {
 		if (!state.date || typeof state.todayGlobalPosts !== 'number') return null;
 		// Campo agregado después de los primeros estados persistidos
 		state.skippedToday ??= [];
+		state.unsupportedGroups ??= [];
 		return state;
 	} catch {
 		return null;
@@ -61,7 +66,9 @@ export function rolloverIfNeeded(state: State, dateKey: string): State {
 	if (state.date === dateKey) return state;
 	return {
 		...emptyState(dateKey),
-		// el historial de plantillas se conserva entre días para seguir rotando
-		recentTemplates: state.recentTemplates
+		// el historial de plantillas y la omisión de grupos sin compositor se
+		// conservan entre días
+		recentTemplates: state.recentTemplates,
+		unsupportedGroups: state.unsupportedGroups
 	};
 }
