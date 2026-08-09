@@ -41,11 +41,13 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 /**
  * Abre una URL en el navegador externo del dispositivo.
  * Android: intent URL hacia Chrome (con browser_fallback_url al navegador por
- * defecto si Chrome no está instalado). iOS: window.open con _blank, que en el
- * WebView de Facebook/Instagram abre Safari.
+ * defecto si Chrome no está instalado). iOS: primero el URL scheme de Chrome
+ * (googlechromes://), que entrega la navegación a la app externa; si no se
+ * confirma que la app pasó a segundo plano (Chrome no instalado), se intenta
+ * window.open como respaldo, y si el popup queda bloqueado se copia el enlace.
  * Devuelve 'copied' cuando no se pudo abrir y el enlace quedó copiado.
  */
-export function openInExternalBrowser(url: string): 'opened' | 'copied' {
+export async function openInExternalBrowser(url: string): Promise<'opened' | 'copied'> {
 	const isAndroid = /Android/i.test(navigator.userAgent);
 	if (isAndroid) {
 		const u = new URL(url);
@@ -54,8 +56,40 @@ export function openInExternalBrowser(url: string): 'opened' | 'copied' {
 		window.location.href = intent;
 		return 'opened';
 	}
+
+	if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+		// El WebView de Facebook/Instagram intercepta window.open y lo abre en su
+		// navegador interno (se percibe como una recarga). El URL scheme de Chrome
+		// entrega la navegación a la app externa; si Chrome no está instalado la
+		// navegación falla en silencio y la app nunca sale a segundo plano.
+		const leftApp = await new Promise<boolean>((resolve) => {
+			let timer: ReturnType<typeof setTimeout>;
+			const settle = (ok: boolean) => {
+				window.removeEventListener('pagehide', onPageHide);
+				document.removeEventListener('visibilitychange', onHidden);
+				clearTimeout(timer);
+				resolve(ok);
+			};
+			const onPageHide = () => settle(true);
+			const onHidden = () => {
+				if (document.hidden) settle(true);
+			};
+			timer = setTimeout(() => settle(false), 1500);
+			window.addEventListener('pagehide', onPageHide);
+			document.addEventListener('visibilitychange', onHidden);
+		});
+		if (leftApp) return 'opened';
+
+		// Chrome no disponible: respaldo con window.open; si el popup es
+		// bloqueado, último recurso copiar el enlace.
+		const win = window.open(url, '_blank');
+		if (win) return 'opened';
+		await copyToClipboard(url);
+		return 'copied';
+	}
+
 	const win = window.open(url, '_blank');
 	if (win) return 'opened';
-	void copyToClipboard(url);
+	await copyToClipboard(url);
 	return 'copied';
 }

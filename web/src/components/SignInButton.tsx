@@ -40,6 +40,12 @@ export function SignInButton({ returnTo, children = 'Continuar con Google', ...p
 		});
 	};
 
+	const openExternal = () => {
+		void openInExternalBrowser(window.location.href).then((result) => {
+			if (result === 'copied') toast.success('Enlace copiado: pégalo en tu navegador');
+		});
+	};
+
 	return (
 		<>
 			<Button {...props} onClick={() => setShowPrompt(true)}>
@@ -55,7 +61,7 @@ export function SignInButton({ returnTo, children = 'Continuar con Google', ...p
 						</DialogDescription>
 					</DialogHeader>
 					<div className="flex flex-col gap-2">
-						<Button onClick={() => openInExternalBrowser(window.location.href)}>
+						<Button onClick={openExternal}>
 							<ExternalLink className="mr-2 h-4 w-4" /> Abrir en navegador
 						</Button>
 						<Button variant="outline" onClick={copy}>

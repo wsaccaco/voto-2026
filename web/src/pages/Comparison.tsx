@@ -13,13 +13,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue
-} from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
 	Table,
 	TableBody,
@@ -122,22 +116,15 @@ export default function Comparison() {
 
 			{/* Controles */}
 			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-				<Select
+				<SearchableSelect
 					value={electionId !== null ? String(electionId) : undefined}
 					onValueChange={(v) => setElectionId(Number(v))}
+					options={elections.map((e) => ({ value: String(e.id), label: e.label }))}
+					placeholder="Selecciona una elección"
+					searchPlaceholder="Buscar elección…"
 					disabled={elections.length === 0}
-				>
-					<SelectTrigger className="w-full sm:w-72">
-						<SelectValue placeholder="Selecciona una elección" />
-					</SelectTrigger>
-					<SelectContent>
-						{elections.map((e) => (
-							<SelectItem key={e.id} value={String(e.id)}>
-								{e.label}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+					className="w-full sm:w-72"
+				/>
 
 				<div className="flex gap-1 rounded-lg bg-muted p-1">
 					{GROUPINGS.map((g) => (
