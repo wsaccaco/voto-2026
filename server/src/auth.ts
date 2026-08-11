@@ -92,30 +92,60 @@ export async function getSessionUser(c: Context): Promise<SessionUser | null> {
 	}
 }
 
+/** Detecta la violación del constraint único de email (23505 users_email_unique). */
+function isEmailUniqueViolation(err: unknown): boolean {
+	const cause = (err as { cause?: { code?: string; constraint_name?: string } }).cause;
+	return cause?.code === '23505' && cause?.constraint_name === 'users_email_unique';
+}
+
 /**
  * Garantiza que el usuario de sesión exista en nuestra BD y lo devuelve.
  * Se usa al votar / guardar perfil.
+ *
+ * El upsert principal es por google_id. Si el email ya existe vinculado a otro
+ * google_id (p. ej. registro previo de otra versión de la app), se hace merge
+ * por email reasignando el google_id a la cuenta actual, conservando el id y
+ * sus votos.
  */
 export async function getOrCreateDbUser(session: SessionUser) {
-	const [user] = await db
-		.insert(users)
-		.values({
-			googleId: session.googleId,
-			email: session.email.toLowerCase(),
-			name: session.name,
-			avatarUrl: session.image,
-			isAdmin: session.isAdmin
-		})
-		.onConflictDoUpdate({
-			target: users.googleId,
-			set: {
-				email: session.email.toLowerCase(),
-				name: session.name,
-				avatarUrl: session.image
-			}
-		})
-		.returning();
-	return user;
+	const email = session.email.toLowerCase();
+	const values = {
+		googleId: session.googleId,
+		email,
+		name: session.name,
+		avatarUrl: session.image,
+		isAdmin: session.isAdmin
+	};
+	try {
+		const [user] = await db
+			.insert(users)
+			.values(values)
+			.onConflictDoUpdate({
+				target: users.googleId,
+				set: {
+					email,
+					name: session.name,
+					avatarUrl: session.image
+				}
+			})
+			.returning();
+		return user;
+	} catch (err: unknown) {
+		if (!isEmailUniqueViolation(err)) throw err;
+		const [user] = await db
+			.insert(users)
+			.values(values)
+			.onConflictDoUpdate({
+				target: users.email,
+				set: {
+					googleId: session.googleId,
+					name: session.name,
+					avatarUrl: session.image
+				}
+			})
+			.returning();
+		return user;
+	}
 }
 
 /** Busca el usuario de BD por email (para flujos donde ya votó antes). */
